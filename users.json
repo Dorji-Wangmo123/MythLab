@@ -1,0 +1,20 @@
+{
+  "wangchuk": {
+    "name": "sw",
+    "email": "wa@gmail.com",
+    "salt": "3a16293496ff2290b0528c86e67681a4",
+    "password": "14635843aaf892c2d4467ff35b35a39b50d008ea50b4f3a77dbeb3bd3a5e4390"
+  },
+  "saonm": {
+    "name": "saonam",
+    "email": "wss@gmail.com",
+    "salt": "1f3430535796e806a75386c8243c5880",
+    "password": "8f49b380dcaad596ad530e44b9a5ef75343b7b32d361bed1a33f1bda246dbeb5"
+  },
+  "sonam": {
+    "name": "Sonam",
+    "email": "sonam@gmail.com",
+    "salt": "8a4b54ad84c197b7ced46c46f56fbe19",
+    "password": "83fbbcc88b1ee9aae9bdee00c2c7dbb5c71e32a509236a97ce114d1b8b0c2c76"
+  }
+}
