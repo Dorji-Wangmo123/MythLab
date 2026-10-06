@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
 
+from quiz import show_quiz
+
 # Pillow is used to resize the PNG images.
 # If Pillow is not installed, run:
 # pip install pillow
@@ -185,10 +187,15 @@ def search_myth():
 
 
 def open_page(page):
-    messagebox.showinfo(
-        page,
-        page + " page will be added here."
-    )
+
+    if page == "Quiz":
+        show_quiz(content)
+
+    else:
+        messagebox.showinfo(
+            page,
+            page + " page will be added here."
+        )
 
 
 def read_myth(name):
@@ -1035,3 +1042,4 @@ tk.Button(
 # ==========================================
 
 root.mainloop()
+
