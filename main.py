@@ -261,7 +261,7 @@ tk.Label(
 
 tk.Label(
     sidebar,
-    text="Explore. Learn. Believe.",
+    text="Discover the stories, legends, and mythical creatures of Bhutan and beyond.",
     font=("Arial", 9),
     bg=SIDEBAR,
     fg=LIGHT_TEXT
