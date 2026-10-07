@@ -547,7 +547,7 @@ tk.Label(
 
 tk.Label(
     content,
-    text="Discover different realms of mythology.",
+    text="Discover fascinating worlds of mythology.",
     font=("Arial", 9),
     bg=BG,
     fg=LIGHT_TEXT
