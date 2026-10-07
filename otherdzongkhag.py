@@ -556,8 +556,8 @@ title.pack(
 
 description = tk.Label(
     hero,
-    text="Explore the unique myths, legends and sacred stories\n"
-         "from Bhutan's other Dzongkhags.",
+    text="Discover the rich myths, legends and sacred stories\n"
+         "from the different Dzongkhags of Bhutan.",
     font=("Arial", 11),
     fg="#F0ECE3",
     bg="#0A2535",
