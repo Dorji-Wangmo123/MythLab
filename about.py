@@ -205,9 +205,8 @@ tk.Label(
 
 tk.Label(
     page,
-    text="MythLab is your gateway to the enchanting world of myths,\n"
-         "legends, and mythical creatures — with a special focus on\n"
-         "Bhutan and beyond.",
+    text="MythLab is an interactive learning application that brings myths, legends,\n"
+         mythical creatures from Bhutan and around the world together in one place.",
     font=("Arial", 12), bg=BG, fg=TEXT,
     justify="left", anchor="w"
 ).pack(anchor="w", pady=(10, 25))
