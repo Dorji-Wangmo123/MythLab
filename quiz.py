@@ -1334,8 +1334,8 @@ def build_question_page():
 
     tk.Label(
         title_frame,
-        text="Test your knowledge of myths, legends and mythical creatures\n"
-             "from Bhutan and beyond!",
+        text="Challenge yourself with myths, legends and mythical creatures\n"
+             "from Bhutan and around the world!",
         font=("Arial", 10),
         bg="#071b2b",
         fg=WHITE,
