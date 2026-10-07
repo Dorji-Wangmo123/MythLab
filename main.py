@@ -441,7 +441,6 @@ tk.Label(
     pady=(25, 0)
 )
 
-
 tk.Label(
     content,
     text="MythLab",
@@ -452,6 +451,11 @@ tk.Label(
     anchor="w",
     padx=40
 )
+
+tk.Label(
+    content,
+    text="Explore the myths, legends and mythical creatures\n"
+         "of Bhutan and beyond.",)
 
 
 tk.Label(
