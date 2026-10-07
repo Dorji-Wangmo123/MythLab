@@ -6,6 +6,7 @@ from pathlib import Path
 from quiz import show_quiz
 from myths import show_myths
 from creatures import show_creatures
+from exploreBhutan import show_regions
 
 # Pillow is used to resize the PNG images.
 # If Pillow is not installed, run:
@@ -191,15 +192,21 @@ def search_myth():
 def open_page(page):
 
     if page == "Home":
+
         myths_page.pack_forget()
         creatures_page.pack_forget()
+        regions_page.pack_forget()
 
         scrollbar.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
+
         canvas.yview_moveto(0)
 
     elif page == "Myths":
+
         creatures_page.pack_forget()
+        regions_page.pack_forget()
+
         canvas.pack_forget()
         scrollbar.pack_forget()
 
@@ -211,7 +218,10 @@ def open_page(page):
         show_myths(myths_page)
 
     elif page == "Creatures":
+
         myths_page.pack_forget()
+        regions_page.pack_forget()
+
         canvas.pack_forget()
         scrollbar.pack_forget()
 
@@ -222,19 +232,39 @@ def open_page(page):
 
         show_creatures(creatures_page)
 
-    elif page == "Quiz":
+    elif page == "Regions":
+
         myths_page.pack_forget()
         creatures_page.pack_forget()
-        
+
+        canvas.pack_forget()
+        scrollbar.pack_forget()
+
+        regions_page.pack(
+            fill="both",
+            expand=True
+        )
+
+        show_regions(regions_page)
+
+    elif page == "Quiz":
+
+        myths_page.pack_forget()
+        creatures_page.pack_forget()
+        regions_page.pack_forget()
+
         scrollbar.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
-        
+
         show_quiz(content)
-        
+
         content.update_idletasks()
-        canvas.configure(scrollregion=canvas.bbox("all"))
+        canvas.configure(
+            scrollregion=canvas.bbox("all")
+        )
 
     else:
+
         messagebox.showinfo(
             page,
             page + " page will be connected next."
@@ -417,6 +447,7 @@ canvas.pack(
 # It uses the same main window instead of opening a new window.
 myths_page = tk.Frame(main_area,bg=BG)
 creatures_page = tk.Frame(main_area, bg=BG)
+regions_page = tk.Frame(main_area, bg=BG)
 
 content = tk.Frame(
     canvas,
@@ -430,12 +461,10 @@ content_window = canvas.create_window(
     anchor="nw"
 )
 
-
 def update_scroll_region(event=None):
     canvas.configure(
         scrollregion=canvas.bbox("all")
     )
-
 
 def resize_content(event):
     canvas.itemconfig(
