@@ -351,11 +351,15 @@ tk.Label(
 ).pack()
 
 tk.Label(
-    footer, text="for being part of\nMythLab!",
+    footer, text="for exploring the world of\nMythLab!",
     font=("Arial", 10), bg=BG, fg=LIGHT_TEXT, justify="center"
 ).pack()
 
-
+tk.Label(
+    footer, text="Version 1.0",
+    font=("Arial", 8),
+    bg=BG, fg="#7f8c95"
+).pack(pady=(8, 0))
 # ==========================================
 # RUN
 # ==========================================
