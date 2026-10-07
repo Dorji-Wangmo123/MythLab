@@ -200,7 +200,7 @@ tk.Label(
 
 tk.Label(
     sidebar,
-    text="Explore. Learn. Believe.",
+    text="Discover. Learn. Explore.",
     font=("Arial", 9),
     bg=SIDEBAR,
     fg=LIGHT_TEXT
