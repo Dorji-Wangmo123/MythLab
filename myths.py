@@ -469,15 +469,13 @@ tk.Label(
 
 tk.Label(
     hero_text,
-    text="Explore timeless stories, legendary heroes, and powerful\n"
-         "myths from Bhutan and beyond.",
+    text="Discover ancient stories, legendary heroes, and magical beings\n"
+         "from Bhutan and cultures around the world.",
     font=("Arial", 10),
     bg="#061b2b",
     fg=LIGHT_TEXT,
     justify="left"
-).pack(
-    anchor="w"
-)
+).pack
 
 
 # ==================================================
