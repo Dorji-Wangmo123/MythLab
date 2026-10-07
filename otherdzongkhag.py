@@ -1,3 +1,4 @@
+#otherdzongkhag.py code
 import tkinter as tk
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps, ImageEnhance
@@ -34,8 +35,7 @@ BORDER = "#705A32"
 # =========================================================
 
 ROOT = Path(__file__).resolve().parent
-
-IMAGE_FOLDER = ROOT
+IMAGE_FOLDER = ROOT / "assets"
 
 
 # =========================================================

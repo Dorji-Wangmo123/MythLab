@@ -1,3 +1,4 @@
+#welocme.py code
 import tkinter as tk
 
 from tkinter import messagebox
@@ -80,13 +81,7 @@ OK = "#6fcf97"
 
 # ==========================================
 
-
-
-NEXT_PAGE = "home.py"
-
-
-
-
+NEXT_PAGE = "main.py"
 
 # ==========================================
 
@@ -856,14 +851,10 @@ welcome_canvas.pack(
 
 # ==========================================
 
-
-
 BACKGROUND_FILE = os.path.join(
-
     os.path.dirname(os.path.abspath(__file__)),
-
+    "assets",
     "welcome.png"
-
 )
 
 

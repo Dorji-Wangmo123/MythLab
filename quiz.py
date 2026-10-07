@@ -1,3 +1,4 @@
+#quiz.py code
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
@@ -32,7 +33,7 @@ RED = "#d9535f"
 # ============================================================
 
 PROJECT_DIR = Path(__file__).resolve().parent
-IMAGE_DIR = PROJECT_DIR / "images"
+IMAGE_DIR = PROJECT_DIR / "assets"
 
 # Keep images in memory
 quiz_image_refs = []

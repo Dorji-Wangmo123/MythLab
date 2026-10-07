@@ -1,3 +1,4 @@
+#task.py code
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
@@ -44,7 +45,7 @@ BORDER = "#735d35"
 # IMAGE FOLDER
 # ============================================================
 
-IMAGE_FOLDER = Path(__file__).resolve().parent
+IMAGE_FOLDER = Path(__file__).resolve().parent / "assets"
 
 
 # ============================================================

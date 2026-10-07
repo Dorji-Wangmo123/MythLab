@@ -1,8 +1,11 @@
+#main.py code
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
 
 from quiz import show_quiz
+from myths import show_myths
+from creatures import show_creatures
 
 # Pillow is used to resize the PNG images.
 # If Pillow is not installed, run:
@@ -38,7 +41,7 @@ LIGHT_TEXT = "#c7c1b3"
 # ==========================================
 
 PROJECT_DIR = Path(__file__).resolve().parent
-IMAGE_DIR = PROJECT_DIR / "images"
+IMAGE_DIR = PROJECT_DIR / "assets"
 
 # Keep image objects in memory so Tkinter does not remove them.
 image_refs = []
@@ -130,7 +133,7 @@ def image_label(parent, filename, size, bg="#183b50"):
 
 def welcome_image_label(parent):
     """Show the large welcome banner."""
-    welcome_path = Path(__file__).resolve().parent / "welcome.png"
+    welcome_path = Path(__file__).resolve().parent / "assets" / "welcome.png"
 
     if not welcome_path.is_file():
         print("WELCOME IMAGE NOT FOUND:")
@@ -185,16 +188,56 @@ def search_myth():
             "You searched for: " + search
         )
 
-
 def open_page(page):
 
-    if page == "Quiz":
+    if page == "Home":
+        myths_page.pack_forget()
+        creatures_page.pack_forget()
+
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        canvas.yview_moveto(0)
+
+    elif page == "Myths":
+        creatures_page.pack_forget()
+        canvas.pack_forget()
+        scrollbar.pack_forget()
+
+        myths_page.pack(
+            fill="both",
+            expand=True
+        )
+
+        show_myths(myths_page)
+
+    elif page == "Creatures":
+        myths_page.pack_forget()
+        canvas.pack_forget()
+        scrollbar.pack_forget()
+
+        creatures_page.pack(
+            fill="both",
+            expand=True
+        )
+
+        show_creatures(creatures_page)
+
+    elif page == "Quiz":
+        myths_page.pack_forget()
+        creatures_page.pack_forget()
+        
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        
         show_quiz(content)
+        
+        content.update_idletasks()
+        canvas.configure(scrollregion=canvas.bbox("all"))
 
     else:
         messagebox.showinfo(
             page,
-            page + " page will be added here."
+            page + " page will be connected next."
         )
 
 
@@ -370,6 +413,10 @@ canvas.pack(
     expand=True
 )
 
+# Hidden page container for pages such as Myths.
+# It uses the same main window instead of opening a new window.
+myths_page = tk.Frame(main_area,bg=BG)
+creatures_page = tk.Frame(main_area, bg=BG)
 
 content = tk.Frame(
     canvas,
@@ -423,7 +470,6 @@ canvas.bind_all(
     "<MouseWheel>",
     scroll_canvas
 )
-
 
 # ==========================================
 # WELCOME
@@ -1044,6 +1090,7 @@ tk.Button(
 # ==========================================
 # START PROGRAM
 # ==========================================
+
 
 root.mainloop()
 

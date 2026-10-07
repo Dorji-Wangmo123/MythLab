@@ -1,3 +1,4 @@
+#thunder_dragon.py code
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
@@ -35,7 +36,7 @@ DARK = "#071522"
 # IMAGE LOCATION
 # =========================================================
 
-IMAGE_DIR = Path(__file__).parent
+IMAGE_DIR = Path(__file__).resolve().parent / "assets"
 
 # Keep all image references
 image_refs = []
