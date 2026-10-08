@@ -2,16 +2,27 @@
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
+import sys
 
 from quiz import show_quiz
 from myths import show_myths
 from creatures import show_creatures
 from exploreBhutan import show_regions
+from task import show_tasks
+from mythlab_favorites import MythLabFavourites
+from about import show_about
 
 # Pillow is used to resize the PNG images.
 # If Pillow is not installed, run:
 # pip install pillow
 from PIL import Image, ImageTk, ImageOps
+
+# ==========================================
+# LOGGED-IN USER
+# ==========================================
+
+current_username = sys.argv[1] if len(sys.argv) > 1 else None
+active_scroll_canvas = None
 
 
 # ==========================================
@@ -188,27 +199,66 @@ def search_myth():
             "Search Result",
             "You searched for: " + search
         )
+def set_active_scroll_canvas(scroll_canvas):
+    global active_scroll_canvas
+    active_scroll_canvas = scroll_canvas
+
+
+def global_mousewheel(event):
+    if active_scroll_canvas is not None:
+        active_scroll_canvas.yview_scroll(
+            int(-1 * (event.delta / 120)),
+            "units"
+        )
+
+
+def open_mythlab_page(page):
+    open_page(page)
 
 def open_page(page):
 
-    if page == "Home":
+    # ==========================================
+    # CLEAR OLD MOUSE-WHEEL BINDINGS
+    # ==========================================
 
-        myths_page.pack_forget()
-        creatures_page.pack_forget()
-        regions_page.pack_forget()
+    root.unbind_all("<MouseWheel>")
+    root.unbind_all("<Button-4>")
+    root.unbind_all("<Button-5>")
+
+    # ==========================================
+    # HIDE ALL PAGES
+    # ==========================================
+
+    myths_page.pack_forget()
+    creatures_page.pack_forget()
+    regions_page.pack_forget()
+    tasks_page.pack_forget()
+    favourites_page.pack_forget()
+    about_page.pack_forget()
+
+    # ==========================================
+    # HOME
+    # ==========================================
+
+    if page == "Home":
 
         scrollbar.pack(side="right", fill="y")
         canvas.pack(side="left", fill="both", expand=True)
 
         canvas.yview_moveto(0)
 
-    elif page == "Myths":
+    # ==========================================
+    # MYTHS
+    # ==========================================
 
-        creatures_page.pack_forget()
-        regions_page.pack_forget()
+    elif page == "Myths":
 
         canvas.pack_forget()
         scrollbar.pack_forget()
+
+        # Remove old page contents
+        for widget in myths_page.winfo_children():
+            widget.destroy()
 
         myths_page.pack(
             fill="both",
@@ -217,13 +267,18 @@ def open_page(page):
 
         show_myths(myths_page)
 
-    elif page == "Creatures":
+    # ==========================================
+    # CREATURES
+    # ==========================================
 
-        myths_page.pack_forget()
-        regions_page.pack_forget()
+    elif page == "Creatures":
 
         canvas.pack_forget()
         scrollbar.pack_forget()
+
+        # Remove old page contents
+        for widget in creatures_page.winfo_children():
+            widget.destroy()
 
         creatures_page.pack(
             fill="both",
@@ -232,13 +287,18 @@ def open_page(page):
 
         show_creatures(creatures_page)
 
-    elif page == "Regions":
+    # ==========================================
+    # REGIONS
+    # ==========================================
 
-        myths_page.pack_forget()
-        creatures_page.pack_forget()
+    elif page == "Regions":
 
         canvas.pack_forget()
         scrollbar.pack_forget()
+
+        # Remove old page contents
+        for widget in regions_page.winfo_children():
+            widget.destroy()
 
         regions_page.pack(
             fill="both",
@@ -247,21 +307,104 @@ def open_page(page):
 
         show_regions(regions_page)
 
+    # ==========================================
+    # MY TASKS
+    # ==========================================
+
+    elif page == "My Tasks":
+
+        canvas.pack_forget()
+        scrollbar.pack_forget()
+
+        # Remove old page contents
+        for widget in tasks_page.winfo_children():
+            widget.destroy()
+
+        tasks_page.pack(
+            fill="both",
+            expand=True
+        )
+
+        show_tasks(
+            tasks_page,
+            current_username
+        )
+
+    # ==========================================
+    # QUIZ
+    # ==========================================
+
     elif page == "Quiz":
 
-        myths_page.pack_forget()
-        creatures_page.pack_forget()
-        regions_page.pack_forget()
+        # Hide other pages
+        canvas.pack_forget()
+        scrollbar.pack_forget()
 
-        scrollbar.pack(side="right", fill="y")
-        canvas.pack(side="left", fill="both", expand=True)
+        # Remove previous quiz contents
+        for widget in content.winfo_children():
+            widget.destroy()
+
+        content.pack(
+            fill="both",
+            expand=True
+        )
 
         show_quiz(content)
 
         content.update_idletasks()
+
         canvas.configure(
             scrollregion=canvas.bbox("all")
         )
+
+    # ==========================================
+    # FAVOURITES
+    # ==========================================
+
+    elif page == "Favourites":
+
+        canvas.pack_forget()
+        scrollbar.pack_forget()
+
+        # Remove old favourites contents
+        for widget in favourites_page.winfo_children():
+            widget.destroy()
+
+        favourites_page.pack(
+            fill="both",
+            expand=True
+        )
+
+        favourites_app = MythLabFavourites(
+            favourites_page,
+            current_username
+        )
+
+        favourites_page.open_mythlab_page = open_mythlab_page
+
+    # ==========================================
+    # ABOUT
+    # ==========================================
+
+    elif page == "About":
+
+        canvas.pack_forget()
+        scrollbar.pack_forget()
+
+        # Remove old About contents
+        for widget in about_page.winfo_children():
+            widget.destroy()
+
+        about_page.pack(
+            fill="both",
+            expand=True
+        )
+
+        show_about(about_page)
+
+    # ==========================================
+    # OTHER
+    # ==========================================
 
     else:
 
@@ -269,7 +412,6 @@ def open_page(page):
             page,
             page + " page will be connected next."
         )
-
 
 def read_myth(name):
     messagebox.showinfo(
@@ -448,6 +590,9 @@ canvas.pack(
 myths_page = tk.Frame(main_area,bg=BG)
 creatures_page = tk.Frame(main_area, bg=BG)
 regions_page = tk.Frame(main_area, bg=BG)
+tasks_page = tk.Frame(main_area, bg=BG)
+favourites_page = tk.Frame(main_area,bg=BG)
+about_page = tk.Frame(main_area, bg=BG)
 
 content = tk.Frame(
     canvas,
@@ -526,12 +671,6 @@ tk.Label(
     anchor="w",
     padx=40
 )
-
-tk.Label(
-    content,
-    text="Explore the myths, legends and mythical creatures\n"
-         "of Bhutan and beyond.",)
-
 
 tk.Label(
     content,

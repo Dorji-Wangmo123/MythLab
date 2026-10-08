@@ -1,8 +1,10 @@
-#mythlab_favorites.py
+# mythlab_favorites.py
+
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk, ImageOps
 from pathlib import Path
+import sqlite3
 
 
 # ============================================================
@@ -24,6 +26,63 @@ BANNER_HEIGHT = 180
 
 BASE_DIR = Path(__file__).resolve().parent
 ASSETS_DIR = BASE_DIR / "assets"
+DB_FILE = BASE_DIR / "mythlab.db"
+
+
+# ============================================================
+# DATABASE
+# ============================================================
+
+def get_connection():
+    return sqlite3.connect(DB_FILE)
+
+
+def get_user_id(username):
+
+    if not username:
+        return None
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "SELECT id FROM users WHERE LOWER(username) = LOWER(?)",
+        (username,)
+    )
+
+    result = cursor.fetchone()
+
+    conn.close()
+
+    return result[0] if result else None
+
+
+def prepare_favourites_table():
+
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    columns = [
+        ("title", "TEXT"),
+        ("description", "TEXT"),
+        ("region", "TEXT"),
+        ("image", "TEXT")
+    ]
+
+    for column_name, column_type in columns:
+
+        try:
+
+            cursor.execute(
+                f"ALTER TABLE favourites ADD COLUMN "
+                f"{column_name} {column_type}"
+            )
+
+        except sqlite3.OperationalError:
+            pass
+
+    conn.commit()
+    conn.close()
 
 
 # ============================================================
@@ -32,6 +91,7 @@ ASSETS_DIR = BASE_DIR / "assets"
 
 BG = "#031722"
 SIDEBAR_BG = "#041b29"
+
 CARD_BG = "#062033"
 CARD_BORDER = "#315366"
 
@@ -46,80 +106,31 @@ BUTTON_BG = "#092536"
 
 
 # ============================================================
-# FAVOURITES
-# ============================================================
-
-favourites = [
-
-    {
-        "type": "Myth",
-        "title": "The Legend of the Druk",
-        "description": "A tale of the thunder dragon, the protector of Bhutan, who brings peace and prosperity to the land.",
-        "region": "Thimphu",
-        "image": "legend_druk.jpg"
-    },
-
-    {
-        "type": "Creature",
-        "title": "Druk",
-        "description": "The sacred dragon of Bhutan, symbolising strength, protection and good fortune.",
-        "region": "Bhutan",
-        "image": "druk.jpg"
-    },
-
-    {
-        "type": "Myth",
-        "title": "The Black Necked Crane",
-        "description": "A beautiful and sacred bird, believed to be a messenger between the human world and the divine.",
-        "region": "Punakha",
-        "image": "crane.jpg"
-    },
-
-    {
-        "type": "Creature",
-        "title": "Yeti",
-        "description": "A mysterious creature said to live in the high mountains of the Himalayas.",
-        "region": "Haa",
-        "image": "yeti.jpg"
-    },
-
-    {
-        "type": "Region",
-        "title": "Paro",
-        "description": "Known for its peaceful valleys, sacred sites and the presence of many legends.",
-        "region": "Paro",
-        "image": "paro.jpg"
-    },
-
-    {
-        "type": "Myth",
-        "title": "The Lady of the Lake",
-        "description": "A spirit who appears at night by the lake, said to grant wishes but also test the hearts of the kind.",
-        "region": "Trongsa",
-        "image": "lady_lake.jpg"
-    }
-]
-
-
-# ============================================================
 # APPLICATION
 # ============================================================
 
 class MythLabFavourites:
 
-    def __init__(self, root):
+    def __init__(self, parent, username=None):
 
-        self.root = root
+        self.root = parent
 
-        self.root.title("MythLab - My Favourites")
+        self.username = username
+        self.user_id = None
 
-        self.root.geometry(
-            f"{APP_WIDTH}x{APP_HEIGHT}"
-        )
+        # Prepare database table
+        prepare_favourites_table()
 
-        self.root.resizable(False, False)
+        # Get logged-in user's ID
+        if self.username:
+            self.user_id = get_user_id(self.username)
 
-        self.root.configure(bg=BG)
+        # Load favourites from database
+        self.load_favourites()
+
+        # Add the original six favourites for a new user
+        if self.user_id and not self.favourites:
+            self.seed_default_favourites()
 
         self.current_filter = "All"
 
@@ -130,12 +141,10 @@ class MythLabFavourites:
             self.search_changed
         )
 
-        # Keep image references alive
+        # Keep images alive
         self.image_references = []
 
         self.banner_image = None
-
-        self.create_sidebar()
 
         self.create_main_area()
 
@@ -145,215 +154,148 @@ class MythLabFavourites:
 
 
     # ========================================================
-    # SIDEBAR
+    # SEED DEFAULT FAVOURITES
     # ========================================================
 
-    def create_sidebar(self):
+    def seed_default_favourites(self):
 
-        sidebar = tk.Frame(
-            self.root,
-            width=SIDEBAR_WIDTH,
-            height=APP_HEIGHT,
-            bg=SIDEBAR_BG
-        )
+        default_favourites = [
 
-        sidebar.place(
-            x=0,
-            y=0
-        )
+            {
+                "type": "Myth",
+                "title": "The Legend of the Druk",
+                "description": "A tale of the thunder dragon, the protector of Bhutan, who brings peace and prosperity to the land.",
+                "region": "Thimphu",
+                "image": "legend_druk.jpg"
+            },
 
+            {
+                "type": "Creature",
+                "title": "Druk",
+                "description": "The sacred dragon of Bhutan, symbolising strength, protection and good fortune.",
+                "region": "Bhutan",
+                "image": "druk.jpg"
+            },
 
-        # Logo
+            {
+                "type": "Myth",
+                "title": "The Black Necked Crane",
+                "description": "A beautiful and sacred bird, believed to be a messenger between the human world and the divine.",
+                "region": "Punakha",
+                "image": "crane.jpg"
+            },
 
-        tk.Label(
-            sidebar,
-            text="🐉",
-            font=("Segoe UI Emoji", 36),
-            bg=SIDEBAR_BG,
-            fg=GOLD
-        ).place(
-            x=75,
-            y=18
-        )
+            {
+                "type": "Creature",
+                "title": "Yeti",
+                "description": "A mysterious creature said to live in the high mountains of the Himalayas.",
+                "region": "Haa",
+                "image": "yeti.jpg"
+            },
 
+            {
+                "type": "Region",
+                "title": "Paro",
+                "description": "Known for its peaceful valleys, sacred sites and the presence of many legends.",
+                "region": "Paro",
+                "image": "paro.jpg"
+            },
 
-        tk.Label(
-            sidebar,
-            text="MythLab",
-            font=("Georgia", 21, "bold"),
-            bg=SIDEBAR_BG,
-            fg=GOLD_LIGHT
-        ).place(
-            x=48,
-            y=72
-        )
-
-
-        tk.Label(
-            sidebar,
-            text="Explore. Learn. Believe.",
-            font=("Segoe UI", 9),
-            bg=SIDEBAR_BG,
-            fg=MUTED
-        ).place(
-            x=38,
-            y=106
-        )
-
-
-        tk.Frame(
-            sidebar,
-            bg=GOLD,
-            width=165,
-            height=1
-        ).place(
-            x=23,
-            y=132
-        )
-
-
-        # Menu
-
-        menu_items = [
-
-            ("⌂", "Home"),
-            ("▣", "Myths"),
-            ("🐉", "Creatures"),
-            ("◉", "Regions"),
-            ("☷", "My Tasks"),
-            ("?", "Quiz"),
-            ("♡", "Favourites"),
-            ("ⓘ", "About")
-
+            {
+                "type": "Myth",
+                "title": "The Lady of the Lake",
+                "description": "A spirit who appears at night by the lake, said to grant wishes but also test the hearts of the kind.",
+                "region": "Trongsa",
+                "image": "lady_lake.jpg"
+            }
         ]
 
+        conn = get_connection()
+        cursor = conn.cursor()
 
-        y = 151
+        for item in default_favourites:
 
+            cursor.execute("""
+                INSERT INTO favourites
+                (
+                    user_id,
+                    item_type,
+                    item_id,
+                    title,
+                    description,
+                    region,
+                    image
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                self.user_id,
+                item["type"],
+                0,
+                item["title"],
+                item["description"],
+                item["region"],
+                item["image"]
+            ))
 
-        for icon, name in menu_items:
+        conn.commit()
+        conn.close()
 
-            active = name == "Favourites"
-
-            row_bg = (
-                "#3b3321"
-                if active
-                else SIDEBAR_BG
-            )
-
-
-            row = tk.Frame(
-                sidebar,
-                width=190,
-                height=42,
-                bg=row_bg,
-                highlightthickness=1 if active else 0,
-                highlightbackground=GOLD
-            )
-
-            row.place(
-                x=10,
-                y=y
-            )
-
-
-            tk.Label(
-                row,
-                text=icon,
-                font=("Segoe UI Symbol", 18),
-                bg=row_bg,
-                fg=GOLD
-            ).place(
-                x=14,
-                y=7
-            )
-
-
-            label = tk.Label(
-                row,
-                text=name,
-                font=("Segoe UI", 11),
-                bg=row_bg,
-                fg=WHITE
-            )
-
-            label.place(
-                x=58,
-                y=9
-            )
-
-
-            row.bind(
-                "<Button-1>",
-                lambda event, n=name:
-                self.menu_clicked(n)
-            )
-
-
-            label.bind(
-                "<Button-1>",
-                lambda event, n=name:
-                self.menu_clicked(n)
-            )
-
-
-            y += 45
-
-
-        # Bottom decoration
-
-        tk.Label(
-            sidebar,
-            text="△  △  △",
-            font=("Georgia", 34),
-            bg=SIDEBAR_BG,
-            fg="#173847"
-        ).place(
-            x=39,
-            y=680
-        )
-
-
-        tk.Label(
-            sidebar,
-            text='"Every myth is a door\nto deeper wisdom."',
-            font=("Georgia", 10, "italic"),
-            justify="center",
-            bg=SIDEBAR_BG,
-            fg=GOLD_LIGHT
-        ).place(
-            x=25,
-            y=720
-        )
-
-
-        tk.Label(
-            sidebar,
-            text="— Bhutanese Wisdom",
-            font=("Segoe UI", 8),
-            bg=SIDEBAR_BG,
-            fg=MUTED
-        ).place(
-            x=62,
-            y=765
-        )
+        self.load_favourites()
 
 
     # ========================================================
-    # SIDEBAR BUTTONS
+    # LOAD FAVOURITES
     # ========================================================
 
-    def menu_clicked(self, name):
+    def load_favourites(self):
 
-        if name == "Favourites":
+        self.favourites = []
+
+        if not self.user_id:
             return
 
+        conn = get_connection()
+        cursor = conn.cursor()
 
-        messagebox.showinfo(
-            "MythLab",
-            f"You selected {name}.\n\n"
-            "This page is currently the Favourites section."
-        )
+        cursor.execute("""
+            SELECT
+                id,
+                item_type,
+                item_id,
+                title,
+                description,
+                region,
+                image
+            FROM favourites
+            WHERE user_id = ?
+            ORDER BY id DESC
+        """, (self.user_id,))
+
+        rows = cursor.fetchall()
+
+        conn.close()
+
+        for row in rows:
+
+            (
+                favourite_id,
+                item_type,
+                item_id,
+                title,
+                description,
+                region,
+                image
+            ) = row
+
+            self.favourites.append({
+                "id": favourite_id,
+                "type": item_type,
+                "item_id": item_id,
+                "title": title or "",
+                "description": description or "",
+                "region": region or "",
+                "image": image or ""
+            })
 
 
     # ========================================================
@@ -364,34 +306,114 @@ class MythLabFavourites:
 
         self.main = tk.Frame(
             self.root,
-            width=MAIN_WIDTH,
-            height=APP_HEIGHT,
             bg=BG
         )
 
-        self.main.place(
-            x=SIDEBAR_WIDTH,
-            y=0
+        self.main.pack(
+            fill="both",
+            expand=True
         )
 
+        # ----------------------------------------------------
+        # Banner
+        # ----------------------------------------------------
 
         self.create_banner()
 
+        # ----------------------------------------------------
+        # Filters
+        # ----------------------------------------------------
+
         self.create_filter_area()
 
+        # ----------------------------------------------------
+        # Cards Canvas
+        # ----------------------------------------------------
+
+        self.cards_canvas = tk.Canvas(
+            self.main,
+            bg=BG,
+            highlightthickness=0,
+            bd=0
+        )
+
+        self.cards_canvas.place(
+            x=18,
+            y=245,
+            relwidth=1.0,
+            width=-36,
+            height=450
+        )
+
+        # ----------------------------------------------------
+        # Scrollbar
+        # ----------------------------------------------------
+
+        self.cards_scrollbar = tk.Scrollbar(
+            self.main,
+            orient="vertical",
+            command=self.cards_canvas.yview
+        )
+
+        self.cards_scrollbar.place(
+            relx=1.0,
+            x=-8,
+            y=245,
+            width=10,
+            height=450,
+            anchor="ne"
+        )
+
+        self.cards_canvas.configure(
+            yscrollcommand=self.cards_scrollbar.set
+        )
+
+        # ----------------------------------------------------
+        # Cards Area
+        # ----------------------------------------------------
 
         self.cards_area = tk.Frame(
-            self.main,
-            width=MAIN_WIDTH,
-            height=530,
+            self.cards_canvas,
             bg=BG
         )
 
-        self.cards_area.place(
-            x=18,
-            y=245
+        self.cards_window = self.cards_canvas.create_window(
+            (0, 0),
+            window=self.cards_area,
+            anchor="nw"
         )
 
+        # ----------------------------------------------------
+        # Update Scroll Region
+        # ----------------------------------------------------
+
+        self.cards_area.bind(
+            "<Configure>",
+            self.update_scroll_region
+        )
+
+        self.cards_canvas.bind(
+            "<Configure>",
+            self.resize_cards_area
+        )
+
+        # ----------------------------------------------------
+        # Mouse Wheel
+        # ----------------------------------------------------
+
+        self.cards_canvas.bind(
+            "<Enter>",
+            self.enable_mousewheel
+        )
+
+        self.cards_canvas.bind(
+            "<Leave>",
+            self.disable_mousewheel
+        )
+
+        # ----------------------------------------------------
+        # Count Label
+        # ----------------------------------------------------
 
         self.count_label = tk.Label(
             self.main,
@@ -403,32 +425,106 @@ class MythLabFavourites:
 
         self.count_label.place(
             x=20,
-            y=775
+            y=715
+        )
+
+
+    # ========================================================
+    # SCROLLING
+    # ========================================================
+
+    def update_scroll_region(self, event=None):
+
+        self.cards_canvas.configure(
+            scrollregion=self.cards_canvas.bbox("all")
+        )
+
+
+    def resize_cards_area(self, event):
+
+        self.cards_canvas.itemconfigure(
+            self.cards_window,
+            width=event.width
+        )
+
+
+    def enable_mousewheel(self, event=None):
+
+        self.cards_canvas.bind_all(
+            "<MouseWheel>",
+            self.scroll_mousewheel
+        )
+
+        self.cards_canvas.bind_all(
+            "<Button-4>",
+            self.scroll_up_linux
+        )
+
+        self.cards_canvas.bind_all(
+            "<Button-5>",
+            self.scroll_down_linux
+        )
+
+
+    def disable_mousewheel(self, event=None):
+
+        self.cards_canvas.unbind_all(
+            "<MouseWheel>"
+        )
+
+        self.cards_canvas.unbind_all(
+            "<Button-4>"
+        )
+
+        self.cards_canvas.unbind_all(
+            "<Button-5>"
+        )
+
+
+    def scroll_mousewheel(self, event):
+
+        if event.delta:
+
+            self.cards_canvas.yview_scroll(
+                int(-1 * (event.delta / 120)),
+                "units"
+            )
+
+
+    def scroll_up_linux(self, event):
+
+        self.cards_canvas.yview_scroll(
+            -3,
+            "units"
+        )
+
+
+    def scroll_down_linux(self, event):
+
+        self.cards_canvas.yview_scroll(
+            3,
+            "units"
         )
 
 
     # ========================================================
     # BANNER
     # ========================================================
-    # IMPORTANT:
-    # banner.jpg ALREADY contains the title and description.
-    # Therefore we DO NOT add text on top of it.
-    # ========================================================
 
     def create_banner(self):
 
         banner_path = ASSETS_DIR / "banner.jpg"
 
+        self.main.update_idletasks()
 
-        print(
-            "Banner:",
-            banner_path
-        )
+        banner_width = self.main.winfo_width()
 
+        if banner_width <= 1:
+            banner_width = MAIN_WIDTH
 
         self.banner_canvas = tk.Canvas(
             self.main,
-            width=MAIN_WIDTH,
+            width=banner_width,
             height=BANNER_HEIGHT,
             bg="#071f2e",
             highlightthickness=0
@@ -436,9 +532,9 @@ class MythLabFavourites:
 
         self.banner_canvas.place(
             x=0,
-            y=0
+            y=0,
+            relwidth=1.0
         )
-
 
         if banner_path.exists():
 
@@ -448,21 +544,18 @@ class MythLabFavourites:
                     banner_path
                 ).convert("RGB")
 
-
                 image = ImageOps.fit(
                     image,
                     (
-                        MAIN_WIDTH,
+                        banner_width,
                         BANNER_HEIGHT
                     ),
                     method=Image.Resampling.LANCZOS
                 )
 
-
                 self.banner_image = ImageTk.PhotoImage(
                     image
                 )
-
 
                 self.banner_canvas.create_image(
                     0,
@@ -470,7 +563,6 @@ class MythLabFavourites:
                     anchor="nw",
                     image=self.banner_image
                 )
-
 
             except Exception as error:
 
@@ -486,18 +578,31 @@ class MythLabFavourites:
                 banner_path
             )
 
+        # ----------------------------------------------------
+        # Header Text
+        # ----------------------------------------------------
 
-            self.banner_canvas.create_text(
-                MAIN_WIDTH // 2,
-                BANNER_HEIGHT // 2,
-                text="Banner image not found",
-                fill=WHITE,
-                font=("Segoe UI", 16)
-            )
+        self.banner_canvas.create_text(
+            45,
+            65,
+            anchor="w",
+            text="My Favourites",
+            fill=WHITE,
+            font=("Segoe UI", 28, "bold")
+        )
+
+        self.banner_canvas.create_text(
+            45,
+            108,
+            anchor="w",
+            text="Your favourite myths, creatures, and regions",
+            fill=MUTED,
+            font=("Segoe UI", 12)
+        )
 
 
     # ========================================================
-    # FILTER BUTTONS
+    # FILTER AREA
     # ========================================================
 
     def create_filter_area(self):
@@ -506,16 +611,12 @@ class MythLabFavourites:
 
         self.filter_buttons = {}
 
-
         buttons = [
-
             ("All", 45, 90),
             ("Myths", 150, 90),
             ("Creatures", 265, 125),
             ("Regions", 405, 100)
-
         ]
-
 
         for name, x, width in buttons:
 
@@ -526,14 +627,18 @@ class MythLabFavourites:
                     if name == "All"
                     else ""
                 ) + name,
+
                 font=("Segoe UI", 10, "bold"),
+
                 relief="flat",
+
                 bd=0,
+
                 cursor="hand2",
+
                 command=lambda n=name:
                 self.set_filter(n)
             )
-
 
             button.place(
                 x=x,
@@ -542,11 +647,11 @@ class MythLabFavourites:
                 height=38
             )
 
-
             self.filter_buttons[name] = button
 
-
-        # Search
+        # ----------------------------------------------------
+        # Search Box
+        # ----------------------------------------------------
 
         search_frame = tk.Frame(
             self.main,
@@ -555,14 +660,14 @@ class MythLabFavourites:
             highlightthickness=1
         )
 
-
         search_frame.place(
-            x=680,
-            y=194,
+            relx=1.0,
+            x=-25,
+            y=y,
             width=330,
-            height=40
+            height=40,
+            anchor="ne"
         )
-
 
         tk.Label(
             search_frame,
@@ -574,7 +679,6 @@ class MythLabFavourites:
             x=10,
             y=4
         )
-
 
         tk.Entry(
             search_frame,
@@ -642,7 +746,6 @@ class MythLabFavourites:
 
         image_path = ASSETS_DIR / filename
 
-
         if not image_path.exists():
 
             print(
@@ -652,13 +755,11 @@ class MythLabFavourites:
 
             return None
 
-
         try:
 
             image = Image.open(
                 image_path
             ).convert("RGB")
-
 
             image = ImageOps.fit(
                 image,
@@ -666,11 +767,9 @@ class MythLabFavourites:
                 method=Image.Resampling.LANCZOS
             )
 
-
             return ImageTk.PhotoImage(
                 image
             )
-
 
         except Exception as error:
 
@@ -688,13 +787,17 @@ class MythLabFavourites:
 
     def refresh_cards(self):
 
+        # Remove old cards
+
         for widget in self.cards_area.winfo_children():
 
             widget.destroy()
 
+        # Clear image references
 
         self.image_references = []
 
+        # Search text
 
         query = (
             self.search_var
@@ -703,11 +806,13 @@ class MythLabFavourites:
             .lower()
         )
 
-
         results = []
 
+        # ----------------------------------------------------
+        # Filter favourites
+        # ----------------------------------------------------
 
-        for item in favourites:
+        for item in self.favourites:
 
             if self.current_filter == "All":
 
@@ -721,7 +826,6 @@ class MythLabFavourites:
                     self.current_filter[:-1].lower()
                 )
 
-
             search_match = (
 
                 query == ""
@@ -733,26 +837,41 @@ class MythLabFavourites:
                 or query in item["region"].lower()
 
                 or query in item["type"].lower()
-
             )
-
 
             if type_match and search_match:
 
                 results.append(item)
 
+        # ====================================================
+        # CARD SIZE
+        # ====================================================
+
+        CARD_WIDTH = 325
+        CARD_HEIGHT = 255
+
+        CARD_GAP_X = 20
+        CARD_GAP_Y = 18
+
+        cards_per_row = 3
+
+        # ----------------------------------------------------
+        # Create Cards
+        # ----------------------------------------------------
 
         for index, item in enumerate(results):
 
-            row = index // 3
+            row = index // cards_per_row
 
-            column = index % 3
+            column = index % cards_per_row
 
+            x = column * (
+                CARD_WIDTH + CARD_GAP_X
+            )
 
-            x = column * 345
-
-            y = row * 273
-
+            y = row * (
+                CARD_HEIGHT + CARD_GAP_Y
+            )
 
             self.create_card(
                 item,
@@ -760,14 +879,84 @@ class MythLabFavourites:
                 y
             )
 
+        # ====================================================
+        # CONTENT SIZE
+        # ====================================================
+
+        if len(results) == 0:
+
+            rows = 1
+
+        else:
+
+            rows = (
+                len(results)
+                + cards_per_row
+                - 1
+            ) // cards_per_row
+
+        content_width = (
+
+            cards_per_row
+            * CARD_WIDTH
+
+            +
+
+            (cards_per_row - 1)
+            * CARD_GAP_X
+        )
+
+        content_height = (
+
+            rows
+            * CARD_HEIGHT
+
+            +
+
+            (rows - 1)
+            * CARD_GAP_Y
+        )
+
+        # ----------------------------------------------------
+        # Force the area to the correct size
+        # ----------------------------------------------------
+
+        self.cards_area.configure(
+            width=content_width,
+            height=content_height
+        )
+
+        # ----------------------------------------------------
+        # Set scroll region
+        # ----------------------------------------------------
+
+        self.cards_canvas.configure(
+            scrollregion=(
+                0,
+                0,
+                content_width,
+                content_height
+            )
+        )
+
+        # Always return to top
+
+        self.cards_canvas.yview_moveto(0)
+
+        # ====================================================
+        # COUNT
+        # ====================================================
 
         count = len(results)
 
-
         self.count_label.configure(
+
             text=
+
             f"✦  You have {count} favourite item"
+
             +
+
             (
                 ""
                 if count == 1
@@ -790,43 +979,39 @@ class MythLabFavourites:
         CARD_WIDTH = 325
         CARD_HEIGHT = 255
 
-
         card = tk.Frame(
+
             self.cards_area,
+
             width=CARD_WIDTH,
+
             height=CARD_HEIGHT,
+
             bg=CARD_BG,
+
             highlightbackground=CARD_BORDER,
+
             highlightthickness=1
         )
-
 
         card.place(
             x=x,
             y=y
         )
 
-
         # ====================================================
         # IMAGE
-        # ====================================================
-        # NO EXTRA TYPE LABEL
-        # NO EXTRA HEART
-        #
-        # Your image files already contain those elements.
         # ====================================================
 
         photo = self.load_card_image(
             item["image"]
         )
 
-
         if photo:
 
             self.image_references.append(
                 photo
             )
-
 
             tk.Label(
                 card,
@@ -838,7 +1023,6 @@ class MythLabFavourites:
                 width=CARD_WIDTH,
                 height=128
             )
-
 
         else:
 
@@ -854,7 +1038,6 @@ class MythLabFavourites:
                 width=CARD_WIDTH,
                 height=128
             )
-
 
         # ====================================================
         # TITLE
@@ -873,7 +1056,6 @@ class MythLabFavourites:
             width=300,
             height=25
         )
-
 
         # ====================================================
         # DESCRIPTION
@@ -895,7 +1077,6 @@ class MythLabFavourites:
             height=45
         )
 
-
         # ====================================================
         # REGION
         # ====================================================
@@ -913,7 +1094,6 @@ class MythLabFavourites:
             width=150,
             height=24
         )
-
 
         # ====================================================
         # VIEW BUTTON
@@ -939,7 +1119,6 @@ class MythLabFavourites:
             height=28
         )
 
-
         # ====================================================
         # DELETE BUTTON
         # ====================================================
@@ -955,8 +1134,8 @@ class MythLabFavourites:
             relief="flat",
             bd=0,
             cursor="hand2",
-            command=lambda title=item["title"]:
-            self.remove_favourite(title)
+            command=lambda data=item:
+            self.remove_favourite(data)
         ).place(
             x=298,
             y=212,
@@ -966,64 +1145,96 @@ class MythLabFavourites:
 
 
     # ========================================================
-    # VIEW
+    # VIEW ITEM
     # ========================================================
 
     def view_item(self, item):
 
-        messagebox.showinfo(
-            item["title"],
+        if hasattr(self.root, "open_mythlab_page"):
 
-            f"{item['title']}\n\n"
-            f"Type: {item['type']}\n"
-            f"Region: {item['region']}\n\n"
-            f"{item['description']}"
-        )
+            item_type = item["type"].lower()
 
+            if item_type == "myth":
+                self.root.open_mythlab_page("Myths")
+
+            elif item_type == "creature":
+                self.root.open_mythlab_page("Creatures")
+
+            elif item_type == "region":
+                self.root.open_mythlab_page("Regions")
+
+            else:
+                messagebox.showinfo(
+                    item["title"],
+                    f"{item['title']}\n\n"
+                    f"Type: {item['type']}\n"
+                    f"Region: {item['region']}\n\n"
+                    f"{item['description']}"
+                )
+
+        else:
+
+            messagebox.showinfo(
+                item["title"],
+                f"{item['title']}\n\n"
+                f"Type: {item['type']}\n"
+                f"Region: {item['region']}\n\n"
+                f"{item['description']}"
+            )
 
     # ========================================================
-    # REMOVE
+    # REMOVE FAVOURITE
     # ========================================================
 
-    def remove_favourite(self, title):
+    def remove_favourite(self, item):
 
         answer = messagebox.askyesno(
+
             "Remove Favourite",
 
             f"Do you want to remove\n\n"
-            f"'{title}'\n\n"
+            f"'{item['title']}'\n\n"
             f"from your favourites?"
         )
-
 
         if not answer:
             return
 
+        if not self.user_id:
+            return
 
-        global favourites
+        conn = get_connection()
+        cursor = conn.cursor()
 
+        cursor.execute("""
+            DELETE FROM favourites
+            WHERE id = ? AND user_id = ?
+        """, (
+            item["id"],
+            self.user_id
+        ))
 
-        favourites = [
+        conn.commit()
+        conn.close()
 
-            item
-            for item in favourites
-
-            if item["title"] != title
-
-        ]
-
-
+        self.load_favourites()
         self.refresh_cards()
 
 
 # ============================================================
-# RUN
+# RUN DIRECTLY
 # ============================================================
 
 if __name__ == "__main__":
 
     root = tk.Tk()
 
+    root.title("MythLab - Favourites")
+
+    root.geometry("1200x900")
+
+    # Direct testing without a logged-in user
+    # The actual application passes the username from main.py.
     app = MythLabFavourites(root)
 
     root.mainloop()

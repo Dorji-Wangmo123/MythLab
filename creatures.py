@@ -327,17 +327,7 @@ def show_creatures(parent):
             width=e.width
         )
     )
-
-
-    canvas.bind_all(
-        "<MouseWheel>",
-        lambda e: canvas.yview_scroll(
-            int(-1 * (e.delta / 120)),
-            "units"
-        )
-    )
-
-
+##
     # ==========================================
     # HERO BANNER
     # ==========================================
@@ -1033,3 +1023,5 @@ def show_creatures(parent):
     draw_pills()
 
     draw_cards()
+
+    return canvas
