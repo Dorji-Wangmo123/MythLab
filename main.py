@@ -31,7 +31,12 @@ TEXT = "#f5ead0"
 LIGHT_TEXT = "#c7c1b3"
 
 image_refs = []
-current_username = sys.argv[1].strip() if len(sys.argv) > 1 else None
+
+current_username = (
+    sys.argv[1].strip()
+    if len(sys.argv) > 1
+    else None
+)
 
 
 # ============================================================
@@ -43,32 +48,43 @@ def get_connection():
 
 
 def username_exists(username):
+
     if not username:
         return False
 
     try:
         conn = get_connection()
         cursor = conn.cursor()
+
         cursor.execute(
             "SELECT id FROM users WHERE LOWER(username) = LOWER(?)",
             (username.strip(),)
         )
+
         result = cursor.fetchone()
         conn.close()
+
         return result is not None
+
     except Exception as error:
+
         print("User check error:", error)
         return False
 
 
 def find_single_user():
+
     """If there is only one account, use it automatically."""
+
     try:
+
         conn = get_connection()
         cursor = conn.cursor()
+
         cursor.execute(
             "SELECT username FROM users ORDER BY id LIMIT 2"
         )
+
         rows = cursor.fetchall()
         conn.close()
 
@@ -76,30 +92,35 @@ def find_single_user():
             return rows[0][0]
 
     except Exception as error:
+
         print("Could not read users:", error)
 
     return None
 
 
 def ensure_logged_in_user():
+
     """
     My Tasks and Favourites need a real username because both
     features store data using the users table.
     """
+
     global current_username
 
     if current_username and username_exists(current_username):
         return True
 
-    # If there is only one user, do not ask the user anything.
+    # If there is only one user, use it automatically.
     single_user = find_single_user()
 
     if single_user:
+
         current_username = single_user
         return True
 
     # If there are multiple users, ask which account is being used.
     while True:
+
         username = simpledialog.askstring(
             "MythLab Login",
             "Enter your MythLab username:",
@@ -112,14 +133,17 @@ def ensure_logged_in_user():
         username = username.strip()
 
         if not username:
+
             messagebox.showwarning(
                 "Username",
                 "Please enter your username.",
                 parent=root
             )
+
             continue
 
         if username_exists(username):
+
             current_username = username
             return True
 
@@ -135,9 +159,13 @@ def ensure_logged_in_user():
 # ============================================================
 
 root = tk.Tk()
+
 root.title("MythLab - Mythology Library")
+
 root.geometry("1200x900")
+
 root.minsize(900, 650)
+
 root.configure(bg=BG)
 
 
@@ -146,13 +174,16 @@ root.configure(bg=BG)
 # ============================================================
 
 def find_image(filename):
+
     """Find an image in assets/ or in the project folder."""
+
     possible = [
         ASSETS_DIR / filename,
         PROJECT_DIR / filename
     ]
 
     for path in possible:
+
         if path.is_file():
             return path
 
@@ -160,10 +191,12 @@ def find_image(filename):
     requested_ext = Path(filename).suffix.lower()
 
     for folder in (ASSETS_DIR, PROJECT_DIR):
+
         if not folder.is_dir():
             continue
 
         for item in folder.iterdir():
+
             if not item.is_file():
                 continue
 
@@ -176,19 +209,23 @@ def find_image(filename):
                 stem.startswith(requested_stem)
                 or requested_stem.startswith(stem)
             ):
+
                 return item
 
     return None
 
 
 def load_image(filename, size):
+
     path = find_image(filename)
 
     if path is None:
         return None
 
     try:
+
         image = Image.open(path).convert("RGB")
+
         image = ImageOps.fit(
             image,
             size,
@@ -196,26 +233,40 @@ def load_image(filename, size):
         )
 
         photo = ImageTk.PhotoImage(image)
+
         image_refs.append(photo)
 
         return photo
 
     except Exception as error:
-        print("Could not load image:", filename, error)
+
+        print(
+            "Could not load image:",
+            filename,
+            error
+        )
+
         return None
 
 
 def image_label(parent, filename, size, bg=CARD):
-    photo = load_image(filename, size)
+
+    photo = load_image(
+        filename,
+        size
+    )
 
     if photo:
+
         label = tk.Label(
             parent,
             image=photo,
             bg=bg,
             bd=0
         )
+
     else:
+
         label = tk.Label(
             parent,
             text="IMAGE NOT FOUND",
@@ -296,12 +347,14 @@ home_window = home_canvas.create_window(
 
 
 def update_home_scroll(event=None):
+
     home_canvas.configure(
         scrollregion=home_canvas.bbox("all")
     )
 
 
 def resize_home(event):
+
     home_canvas.itemconfig(
         home_window,
         width=event.width
@@ -320,6 +373,7 @@ home_canvas.bind(
 
 
 def home_mousewheel(event):
+
     home_canvas.yview_scroll(
         int(-1 * (event.delta / 120)),
         "units"
@@ -330,16 +384,41 @@ def home_mousewheel(event):
 # OTHER PAGE FRAMES
 # ============================================================
 
-myths_page = tk.Frame(main_area, bg=BG)
-creatures_page = tk.Frame(main_area, bg=BG)
-regions_page = tk.Frame(main_area, bg=BG)
-tasks_page = tk.Frame(main_area, bg=BG)
-favourites_page = tk.Frame(main_area, bg=BG)
-about_page = tk.Frame(main_area, bg=BG)
+myths_page = tk.Frame(
+    main_area,
+    bg=BG
+)
 
-# Quiz gets its OWN canvas.
-# This is the important fix: quiz is no longer placed inside
-# the hidden Home canvas.
+creatures_page = tk.Frame(
+    main_area,
+    bg=BG
+)
+
+regions_page = tk.Frame(
+    main_area,
+    bg=BG
+)
+
+tasks_page = tk.Frame(
+    main_area,
+    bg=BG
+)
+
+favourites_page = tk.Frame(
+    main_area,
+    bg=BG
+)
+
+about_page = tk.Frame(
+    main_area,
+    bg=BG
+)
+
+
+# ============================================================
+# QUIZ CANVAS
+# ============================================================
+
 quiz_canvas = tk.Canvas(
     main_area,
     bg=BG,
@@ -369,12 +448,14 @@ quiz_window = quiz_canvas.create_window(
 
 
 def update_quiz_scroll(event=None):
+
     quiz_canvas.configure(
         scrollregion=quiz_canvas.bbox("all")
     )
 
 
 def resize_quiz(event):
+
     quiz_canvas.itemconfig(
         quiz_window,
         width=event.width
@@ -393,6 +474,7 @@ quiz_canvas.bind(
 
 
 def quiz_mousewheel(event):
+
     quiz_canvas.yview_scroll(
         int(-1 * (event.delta / 120)),
         "units"
@@ -404,6 +486,7 @@ def quiz_mousewheel(event):
 # ============================================================
 
 def hide_all_pages():
+
     home_canvas.pack_forget()
     home_scrollbar.pack_forget()
 
@@ -419,15 +502,18 @@ def hide_all_pages():
 
 
 def clear_frame(frame):
+
     for widget in frame.winfo_children():
         widget.destroy()
 
 
 def open_mythlab_page(page):
+
     open_page(page)
 
 
 def open_page(page):
+
     global current_username
 
     # Remove old mouse-wheel bindings.
@@ -437,9 +523,10 @@ def open_page(page):
 
     hide_all_pages()
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # HOME
-    # --------------------------------------------------------
+    # ========================================================
 
     if page == "Home":
 
@@ -461,9 +548,10 @@ def open_page(page):
             home_mousewheel
         )
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # MYTHS
-    # --------------------------------------------------------
+    # ========================================================
 
     elif page == "Myths":
 
@@ -476,9 +564,10 @@ def open_page(page):
 
         show_myths(myths_page)
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # CREATURES
-    # --------------------------------------------------------
+    # ========================================================
 
     elif page == "Creatures":
 
@@ -491,9 +580,10 @@ def open_page(page):
 
         show_creatures(creatures_page)
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # REGIONS
-    # --------------------------------------------------------
+    # ========================================================
 
     elif page == "Regions":
 
@@ -506,9 +596,10 @@ def open_page(page):
 
         show_regions(regions_page)
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # MY TASKS
-    # --------------------------------------------------------
+    # ========================================================
 
     elif page == "My Tasks":
 
@@ -527,9 +618,10 @@ def open_page(page):
             current_username
         )
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # QUIZ
-    # --------------------------------------------------------
+    # ========================================================
 
     elif page == "Quiz":
 
@@ -546,7 +638,9 @@ def open_page(page):
             expand=True
         )
 
-        show_quiz(quiz_content)
+        show_quiz(
+            quiz_content
+        )
 
         quiz_content.update_idletasks()
 
@@ -559,9 +653,10 @@ def open_page(page):
             quiz_mousewheel
         )
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # FAVOURITES
-    # --------------------------------------------------------
+    # ========================================================
 
     elif page == "Favourites":
 
@@ -575,7 +670,9 @@ def open_page(page):
             expand=True
         )
 
-        favourites_page.open_mythlab_page = open_mythlab_page
+        favourites_page.open_mythlab_page = (
+            open_mythlab_page
+        )
 
         # Keep a reference so the object is not garbage-collected.
         favourites_page.app = MythLabFavourites(
@@ -583,11 +680,14 @@ def open_page(page):
             current_username
         )
 
-        favourites_page.open_mythlab_page = open_mythlab_page
+        favourites_page.open_mythlab_page = (
+            open_mythlab_page
+        )
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # ABOUT
-    # --------------------------------------------------------
+    # ========================================================
 
     elif page == "About":
 
@@ -598,7 +698,10 @@ def open_page(page):
             expand=True
         )
 
-        show_about(about_page)
+        show_about(
+            about_page
+        )
+
 
     else:
 
@@ -622,6 +725,7 @@ tk.Label(
     pady=(25, 0)
 )
 
+
 tk.Label(
     sidebar,
     text="MythLab",
@@ -630,9 +734,13 @@ tk.Label(
     fg=GOLD
 ).pack()
 
+
 tk.Label(
     sidebar,
-    text="Discover the stories, legends, and mythical creatures of Bhutan and beyond.",
+    text=(
+        "Discover the stories, legends, and "
+        "mythical creatures of Bhutan and beyond."
+    ),
     font=("Arial", 9),
     bg=SIDEBAR,
     fg=LIGHT_TEXT,
@@ -658,6 +766,7 @@ menu_items = [
     ("♡  Favourites", "Favourites"),
     ("ⓘ  About", "About")
 ]
+
 
 for text, page in menu_items:
 
@@ -687,7 +796,11 @@ for text, page in menu_items:
 
 tk.Label(
     sidebar,
-    text='“Every myth is a door\nto a deeper wisdom.”\n\n— Bhutanese Wisdom',
+    text=(
+        '“Every myth is a door\n'
+        'to a deeper wisdom.”\n\n'
+        '— Bhutanese Wisdom'
+    ),
     font=("Georgia", 9, "italic"),
     bg=SIDEBAR,
     fg=GOLD,
@@ -702,57 +815,22 @@ tk.Label(
 # HOME PAGE
 # ============================================================
 
-tk.Label(
-    home_content,
-    text="Welcome to",
-    font=("Georgia", 15),
-    bg=BG,
-    fg=TEXT
-).pack(
-    anchor="w",
-    padx=40,
-    pady=(25, 0)
-)
-
-tk.Label(
-    home_content,
-    text="MythLab",
-    font=("Georgia", 32, "bold"),
-    bg=BG,
-    fg=GOLD
-).pack(
-    anchor="w",
-    padx=40
-)
-
-tk.Label(
-    home_content,
-    text="Explore the myths, legends and mythical creatures\n"
-         "of Bhutan and beyond.",
-    font=("Arial", 11),
-    bg=BG,
-    fg=LIGHT_TEXT,
-    justify="left"
-).pack(
-    anchor="w",
-    padx=40,
-    pady=(0, 15)
-)
-
-
-# ============================================================
-# HOME BANNER
-# ============================================================
+# ------------------------------------------------------------
+# HOME HERO / HEADER IMAGE
+# ------------------------------------------------------------
 
 welcome_path = ASSETS_DIR / "welcome.png"
 
 if welcome_path.is_file():
 
     try:
+
+        # Load the welcome image.
         welcome_image = Image.open(
             welcome_path
         ).convert("RGB")
 
+        # Resize/crop the image to the banner size.
         welcome_image = ImageOps.fit(
             welcome_image,
             (1050, 300),
@@ -763,21 +841,123 @@ if welcome_path.is_file():
             welcome_image
         )
 
-        image_refs.append(welcome_photo)
+        # Keep the image in memory.
+        image_refs.append(
+            welcome_photo
+        )
 
-        tk.Label(
+        # ----------------------------------------------------
+        # HERO CANVAS
+        # ----------------------------------------------------
+        # Canvas lets us place the text directly over
+        # the image without creating a rectangle behind it.
+        # ----------------------------------------------------
+
+        hero_canvas = tk.Canvas(
             home_content,
-            image=welcome_photo,
+            width=1050,
+            height=300,
             bg=BG,
+            highlightthickness=0,
             bd=0
-        ).pack(
+        )
+
+        hero_canvas.pack(
             fill="x",
             padx=40,
-            pady=(0, 18)
+            pady=(25, 18)
+        )
+
+        # ----------------------------------------------------
+        # IMAGE
+        # ----------------------------------------------------
+
+        hero_canvas.create_image(
+            0,
+            0,
+            image=welcome_photo,
+            anchor="nw"
+        )
+
+        # ----------------------------------------------------
+        # OPTIONAL DARK SHADOW BEHIND TEXT
+        # ----------------------------------------------------
+        # This is not a rectangle. It is just a subtle
+        # text shadow so the words are easier to read.
+        # ----------------------------------------------------
+
+        hero_canvas.create_text(
+            47,
+            57,
+            text="Welcome to",
+            anchor="w",
+            font=("Georgia", 18),
+            fill="#071b2b"
+        )
+
+        hero_canvas.create_text(
+            47,
+            107,
+            text="MythLab",
+            anchor="w",
+            font=("Georgia", 38, "bold"),
+            fill="#071b2b"
+        )
+
+        hero_canvas.create_text(
+            47,
+            162,
+            text=(
+                "Explore the myths, legends and mythical creatures\n"
+                "of Bhutan and beyond."
+            ),
+            anchor="w",
+            font=("Arial", 12),
+            fill="#071b2b",
+            justify="left"
+        )
+
+        # ----------------------------------------------------
+        # MAIN HERO TEXT
+        # ----------------------------------------------------
+
+        hero_canvas.create_text(
+            45,
+            55,
+            text="Welcome to",
+            anchor="w",
+            font=("Georgia", 18),
+            fill=TEXT
+        )
+
+        hero_canvas.create_text(
+            45,
+            105,
+            text="MythLab",
+            anchor="w",
+            font=("Georgia", 38, "bold"),
+            fill=GOLD
+        )
+
+        hero_canvas.create_text(
+            45,
+            160,
+            text=(
+                "Explore the myths, legends and mythical creatures\n"
+                "of Bhutan and beyond."
+            ),
+            anchor="w",
+            font=("Arial", 12),
+            fill=TEXT,
+            justify="left"
         )
 
     except Exception as error:
-        print("Welcome image error:", error)
+
+        print(
+            "Welcome image error:",
+            error
+        )
 
 
 # ============================================================
@@ -785,13 +965,16 @@ if welcome_path.is_file():
 # ============================================================
 
 def search_myth():
+
     value = search_entry.get().strip()
 
     if not value:
+
         messagebox.showwarning(
             "Search",
             "Please enter something to search."
         )
+
         return
 
     messagebox.showinfo(
@@ -811,6 +994,7 @@ search_frame.pack(
     pady=(0, 15)
 )
 
+
 search_entry = tk.Entry(
     search_frame,
     font=("Arial", 12),
@@ -827,6 +1011,7 @@ search_entry.pack(
     ipady=9,
     padx=(0, 10)
 )
+
 
 tk.Button(
     search_frame,
@@ -858,6 +1043,7 @@ tk.Label(
     padx=40
 )
 
+
 tk.Label(
     home_content,
     text="Discover fascinating worlds of mythology.",
@@ -870,6 +1056,7 @@ tk.Label(
     pady=(0, 8)
 )
 
+
 category_frame = tk.Frame(
     home_content,
     bg=BG
@@ -880,12 +1067,30 @@ category_frame.pack(
     padx=40
 )
 
+
 categories = [
-    ("Gods & Goddesses", "Powerful divine beings.", "gods.png"),
-    ("Heroes", "Brave legendary figures.", "heroes.png"),
-    ("Creatures", "Mythical beasts and spirits.", "creatures.png"),
-    ("Folklore", "Traditional stories and legends.", "folklore.png")
+    (
+        "Gods & Goddesses",
+        "Powerful divine beings.",
+        "gods.png"
+    ),
+    (
+        "Heroes",
+        "Brave legendary figures.",
+        "heroes.png"
+    ),
+    (
+        "Creatures",
+        "Mythical beasts and spirits.",
+        "creatures.png"
+    ),
+    (
+        "Folklore",
+        "Traditional stories and legends.",
+        "folklore.png"
+    )
 ]
+
 
 for name, description, image_file in categories:
 
@@ -932,13 +1137,19 @@ for name, description, image_file in categories:
         padx=8
     )
 
-    # Only use valid page names here.
+    # Only Creatures currently opens a real page.
     if name == "Creatures":
-        command = lambda: open_page("Creatures")
+
+        command = lambda: open_page(
+            "Creatures"
+        )
+
     else:
-        command = lambda: messagebox.showinfo(
+
+        # n=name prevents the late-binding lambda problem.
+        command = lambda n=name: messagebox.showinfo(
             "Category",
-            name + " will be added to the library."
+            n + " will be added to the library."
         )
 
     tk.Button(
@@ -960,6 +1171,7 @@ for name, description, image_file in categories:
 # ============================================================
 
 def read_myth(name):
+
     messagebox.showinfo(
         "Myth",
         name + "\n\nMore information will be added here."
@@ -977,6 +1189,7 @@ myth_header.pack(
     pady=(18, 5)
 )
 
+
 tk.Label(
     myth_header,
     text="✥  Featured Myths",
@@ -986,6 +1199,7 @@ tk.Label(
 ).pack(
     side="left"
 )
+
 
 tk.Button(
     myth_header,
@@ -999,6 +1213,7 @@ tk.Button(
     side="right"
 )
 
+
 myth_frame = tk.Frame(
     home_content,
     bg=BG
@@ -1009,12 +1224,30 @@ myth_frame.pack(
     padx=40
 )
 
+
 myths = [
-    ("The Thunder Dragon", "Bhutan", "thunder_dragon.png"),
-    ("The Yeti", "Bhutan", "yeti.png"),
-    ("The Firebird", "Tibet", "firebird (1).png"),
-    ("The Black Mountain", "Bhutan", "black_mountain (2).png")
+    (
+        "The Thunder Dragon",
+        "Bhutan",
+        "thunder_dragon.png"
+    ),
+    (
+        "The Yeti",
+        "Bhutan",
+        "yeti.png"
+    ),
+    (
+        "The Firebird",
+        "Tibet",
+        "firebird (1).png"
+    ),
+    (
+        "The Black Mountain",
+        "Bhutan",
+        "black_mountain (2).png"
+    )
 ]
+
 
 for name, region, image_file in myths:
 
@@ -1081,6 +1314,7 @@ for name, region, image_file in myths:
 # ============================================================
 
 def read_creature(name):
+
     messagebox.showinfo(
         "Creature",
         name + "\n\nMore information will be added here."
@@ -1098,6 +1332,7 @@ creature_header.pack(
     pady=(18, 5)
 )
 
+
 tk.Label(
     creature_header,
     text="✥  Featured Creatures",
@@ -1107,6 +1342,7 @@ tk.Label(
 ).pack(
     side="left"
 )
+
 
 tk.Button(
     creature_header,
@@ -1120,6 +1356,7 @@ tk.Button(
     side="right"
 )
 
+
 creature_frame = tk.Frame(
     home_content,
     bg=BG
@@ -1130,12 +1367,30 @@ creature_frame.pack(
     padx=40
 )
 
+
 creatures = [
-    ("Druk", "Dragon", "druk (3).png"),
-    ("Yeti", "Yeti", "yeti_creature.png"),
-    ("Migoi", "Spirit", "migoi.png"),
-    ("Snow Lion", "Mythical Beast", "snow_lion.png")
+    (
+        "Druk",
+        "Dragon",
+        "druk (3).png"
+    ),
+    (
+        "Yeti",
+        "Yeti",
+        "yeti_creature.png"
+    ),
+    (
+        "Migoi",
+        "Spirit",
+        "migoi.png"
+    ),
+    (
+        "Snow Lion",
+        "Mythical Beast",
+        "snow_lion.png"
+    )
 ]
+
 
 for name, creature_type, image_file in creatures:
 
@@ -1202,6 +1457,7 @@ for name, creature_type, image_file in creatures:
 # ============================================================
 
 def recent_item(name):
+
     messagebox.showinfo(
         "Recently Explored",
         "You selected: " + name
@@ -1219,6 +1475,7 @@ recent_header.pack(
     pady=(18, 5)
 )
 
+
 tk.Label(
     recent_header,
     text="◷  Recently Explored",
@@ -1228,6 +1485,7 @@ tk.Label(
 ).pack(
     side="left"
 )
+
 
 recent_frame = tk.Frame(
     home_content,
@@ -1240,14 +1498,40 @@ recent_frame.pack(
     pady=(0, 15)
 )
 
+
 recent_items = [
-    ("The Black Mountain", "Bhutan", "recent_black_mountain.png"),
-    ("The Legend of Paro Taktsang", "Bhutan", "paro_taktsang.png"),
-    ("The Firebird", "Tibet", "recent_firebird.png"),
-    ("The Snake Princess", "Bhutan", "snake_princess.png"),
-    ("Mount Jomolhari", "Bhutan", "jomolhari.png"),
-    ("The Water Spirit", "Bhutan", "water_spirit.png")
+    (
+        "The Black Mountain",
+        "Bhutan",
+        "recent_black_mountain.png"
+    ),
+    (
+        "The Legend of Paro Taktsang",
+        "Bhutan",
+        "paro_taktsang.png"
+    ),
+    (
+        "The Firebird",
+        "Tibet",
+        "recent_firebird.png"
+    ),
+    (
+        "The Snake Princess",
+        "Bhutan",
+        "snake_princess.png"
+    ),
+    (
+        "Mount Jomolhari",
+        "Bhutan",
+        "jomolhari.png"
+    ),
+    (
+        "The Water Spirit",
+        "Bhutan",
+        "water_spirit.png"
+    )
 ]
+
 
 for name, region, image_file in recent_items:
 
@@ -1328,6 +1612,7 @@ bottom.pack(
     pady=(0, 30)
 )
 
+
 tk.Label(
     bottom,
     text="MythLab • Bhutanese mythology and legends",
@@ -1340,8 +1625,9 @@ tk.Label(
 
 
 # ============================================================
-# START
+# START APPLICATION
 # ============================================================
 
 open_page("Home")
+
 root.mainloop()

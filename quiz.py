@@ -34,6 +34,7 @@ RED = "#d9535f"
 
 PROJECT_DIR = Path(__file__).resolve().parent
 IMAGE_DIR = PROJECT_DIR / "assets"
+LEGACY_IMAGE_DIR = PROJECT_DIR / "images"
 
 # Keep images in memory
 quiz_image_refs = []
@@ -87,7 +88,7 @@ def find_image(filename):
     stem = Path(filename).stem.lower()
     extension = Path(filename).suffix.lower()
 
-    for folder in [IMAGE_DIR, PROJECT_DIR]:
+    for folder in [IMAGE_DIR, LEGACY_IMAGE_DIR, PROJECT_DIR]:
 
         if folder.is_dir():
 
@@ -342,7 +343,7 @@ def show_quiz(content):
     banner.pack_propagate(False)
 
     banner_image = load_quiz_image(
-        "quiz_banner.png",
+        "banner.jpg",
         (1050, 185)
     )
 
@@ -360,58 +361,19 @@ def show_quiz(content):
             relheight=1
         )
 
-    # Dark title area
-    title_area = tk.Frame(
-        banner,
-        bg="#071b2b"
-    )
-
-    title_area.place(
-        x=25,
-        y=30
-    )
-
-    tk.Label(
-        title_area,
-        text="?",
-        font=("Georgia", 30, "bold"),
-        bg="#071b2b",
-        fg=GOLD_LIGHT
-    ).pack(
-        side="left",
-        padx=(5, 15)
-    )
-
-    title_text = tk.Frame(
-        title_area,
-        bg="#071b2b"
-    )
-
-    title_text.pack(
-        side="left"
-    )
-
-    tk.Label(
-        title_text,
-        text="Quiz",
-        font=("Georgia", 31, "bold"),
-        bg="#071b2b",
-        fg=TEXT
-    ).pack(
-        anchor="w"
-    )
-
-    tk.Label(
-        title_text,
-        text="Test your knowledge of myths, legends and mythical creatures\n"
-             "from Bhutan and beyond!",
-        font=("Arial", 10),
-        bg="#071b2b",
-        fg=WHITE,
-        justify="left"
-    ).pack(
-        anchor="w"
-    )
+    # Text directly over the banner image
+    if banner_image:
+        banner_canvas = tk.Canvas(
+            banner,
+            bg=BG,
+            highlightthickness=0,
+            bd=0
+        )
+        banner_canvas.place(x=0, y=0, relwidth=1, relheight=1)
+        banner_canvas.create_image(0, 0, image=banner_image, anchor="nw")
+        banner_canvas.create_text(35, 58, text="?", anchor="w", font=("Georgia", 30, "bold"), fill=GOLD_LIGHT)
+        banner_canvas.create_text(85, 50, text="Quiz", anchor="w", font=("Georgia", 31, "bold"), fill=TEXT)
+        banner_canvas.create_text(85, 95, text="Test your knowledge of myths, legends and mythical creatures\nfrom Bhutan and beyond!", anchor="w", font=("Arial", 10), fill=WHITE)
 
     # ========================================================
     # CATEGORY BUTTONS
@@ -1273,7 +1235,7 @@ def build_question_page():
     banner.pack_propagate(False)
 
     banner_image = load_quiz_image(
-        "quiz_banner.png",
+        "banner.jpg",
         (1050, 190)
     )
 
@@ -1291,59 +1253,19 @@ def build_question_page():
             relheight=1
         )
 
-    # Header
-
-    header = tk.Frame(
-        banner,
-        bg="#071b2b"
-    )
-
-    header.place(
-        x=25,
-        y=35
-    )
-
-    tk.Label(
-        header,
-        text="♢",
-        font=("Arial", 38),
-        bg="#071b2b",
-        fg=GOLD
-    ).pack(
-        side="left",
-        padx=(5, 15)
-    )
-
-    title_frame = tk.Frame(
-        header,
-        bg="#071b2b"
-    )
-
-    title_frame.pack(
-        side="left"
-    )
-
-    tk.Label(
-        title_frame,
-        text="Quiz",
-        font=("Georgia", 32, "bold"),
-        bg="#071b2b",
-        fg=TEXT
-    ).pack(
-        anchor="w"
-    )
-
-    tk.Label(
-        title_frame,
-        text="Challenge yourself with myths, legends and mythical creatures\n"
-             "from Bhutan and around the world!",
-        font=("Arial", 10),
-        bg="#071b2b",
-        fg=WHITE,
-        justify="left"
-    ).pack(
-        anchor="w"
-    )
+    # Text directly over the banner image
+    if banner_image:
+        banner_canvas = tk.Canvas(
+            banner,
+            bg=BG,
+            highlightthickness=0,
+            bd=0
+        )
+        banner_canvas.place(x=0, y=0, relwidth=1, relheight=1)
+        banner_canvas.create_image(0, 0, image=banner_image, anchor="nw")
+        banner_canvas.create_text(35, 62, text="♢", anchor="w", font=("Arial", 38), fill=GOLD)
+        banner_canvas.create_text(95, 52, text="Quiz", anchor="w", font=("Georgia", 32, "bold"), fill=TEXT)
+        banner_canvas.create_text(95, 98, text="Challenge yourself with myths, legends and mythical creatures\nfrom Bhutan and around the world!", anchor="w", font=("Arial", 10), fill=WHITE)
 
     # ========================================================
     # BODY

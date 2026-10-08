@@ -1,4 +1,5 @@
 # myths.py
+
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
@@ -42,12 +43,15 @@ def show_myths(parent):
 
 
     def find_image(filename):
+
         path = IMAGE_DIR / filename
+
         if path.exists():
             print("FOUND IMAGE:", path)
             return path
 
         path = PROJECT_DIR / filename
+
         if path.exists():
             print("FOUND IMAGE:", path)
             return path
@@ -56,24 +60,41 @@ def show_myths(parent):
         extension = Path(filename).suffix.lower()
 
         if IMAGE_DIR.is_dir():
+
             for item in IMAGE_DIR.iterdir():
-                if item.is_file() and item.suffix.lower() == extension:
+
+                if (
+                    item.is_file()
+                    and item.suffix.lower() == extension
+                ):
+
                     item_stem = item.stem.lower()
-                    if item_stem.startswith(stem) or stem.startswith(item_stem):
+
+                    if (
+                        item_stem.startswith(stem)
+                        or stem.startswith(item_stem)
+                    ):
+
                         return item
 
         return None
 
+
     def load_image(filename, size):
+
         path = find_image(filename)
 
         if path is None:
+
             print("IMAGE NOT FOUND:", filename)
             print("Looking inside:", IMAGE_DIR)
+
             return None
 
         try:
+
             image = Image.open(path).convert("RGB")
+
             image = ImageOps.fit(
                 image,
                 size,
@@ -81,26 +102,49 @@ def show_myths(parent):
             )
 
             photo = ImageTk.PhotoImage(image)
+
             image_refs.append(photo)
-            print("IMAGE LOADED:", filename, photo)
+
+            print(
+                "IMAGE LOADED:",
+                filename,
+                photo
+            )
+
             return photo
 
         except Exception as error:
+
             print("Could not load:", filename)
             print("Error:", error)
+
             return None
 
+
     def create_image(parent_widget, filename, size):
-        photo = load_image(filename, size)
-        print("CREATE IMAGE:", filename, "PHOTO:", photo)
+
+        photo = load_image(
+            filename,
+            size
+        )
+
+        print(
+            "CREATE IMAGE:",
+            filename,
+            "PHOTO:",
+            photo
+        )
 
         if photo:
+
             label = tk.Label(
                 parent_widget,
                 image=photo,
                 bg=CARD
             )
+
         else:
+
             label = tk.Label(
                 parent_widget,
                 text="IMAGE NOT FOUND",
@@ -117,21 +161,28 @@ def show_myths(parent):
 
         return label
 
+
     def search_myth():
+
         search = search_entry.get().strip()
 
         if search == "":
+
             messagebox.showwarning(
                 "Search",
                 "Please enter a myth to search."
             )
+
         else:
+
             messagebox.showinfo(
                 "Search",
                 "You searched for: " + search
             )
 
+
     def read_more(name):
+
         messagebox.showinfo(
             name,
             "More information about "
@@ -139,24 +190,32 @@ def show_myths(parent):
             + " will be added here."
         )
 
+
     def favourite(name):
+
         messagebox.showinfo(
             "Favourite",
             name + " added to your favourites."
         )
 
+
     def filter_region(region):
+
         messagebox.showinfo(
             "Region",
             "Showing myths from: " + region
         )
 
+
     def filter_category(category):
+
         messagebox.showinfo(
             "Category",
             "Showing: " + category
         )
 
+
+    # ==================================================
     # MAIN AREA
     # ==================================================
 
@@ -259,11 +318,20 @@ def show_myths(parent):
     # ==================================================
     # HERO SECTION
     # ==================================================
+    #
+    # Only this section has been changed.
+    #
+    # The old Frame + blue hero_text box has been replaced
+    # with a Canvas so the text sits directly on the image.
+    #
 
-    hero = tk.Frame(
+
+    hero = tk.Canvas(
         content,
         bg="#183b50",
-        height=250
+        height=250,
+        highlightthickness=0,
+        bd=0
     )
 
     hero.pack(
@@ -272,99 +340,171 @@ def show_myths(parent):
         pady=(0, 15)
     )
 
-    hero.pack_propagate(False)
-
 
     # ==================================================
-    # HERO BACKGROUND IMAGE
+    # HERO IMAGE
     # ==================================================
 
-    hero_photo = load_image(
-        "welcome.png",
-        (1050, 250)
-    )
+    hero_image_ref = [None]
 
 
-    if hero_photo:
+    def update_hero(event=None):
 
-        hero_image = tk.Label(
-            hero,
-            image=hero_photo,
-            bg="#183b50"
+        width = hero.winfo_width()
+        height = hero.winfo_height()
+
+        # If Tkinter has not calculated the size yet,
+        # use a safe default.
+        if width <= 1:
+            width = 1050
+
+        if height <= 1:
+            height = 250
+
+        hero_path = find_image(
+            "welcome.png"
         )
 
-        hero_image.place(
-            x=0,
-            y=0,
-            relwidth=1,
-            relheight=1
-        )
+        if hero_path is None:
 
-    else:
+            hero.delete("all")
 
-        tk.Label(
-            hero,
-            text="Welcome to MythLab",
-            font=("Georgia", 24, "bold"),
-            bg="#183b50",
-            fg=TEXT
-        ).place(
-            relx=0.5,
-            rely=0.5,
-            anchor="center"
-        )
+            hero.create_text(
+                width / 2,
+                height / 2,
+                text="Welcome to MythLab",
+                font=("Georgia", 24, "bold"),
+                fill=TEXT
+            )
+
+            return
+
+        try:
+
+            image = Image.open(
+                hero_path
+            ).convert("RGB")
+
+            # Fit the image exactly to the hero area.
+            image = ImageOps.fit(
+                image,
+                (width, height),
+                method=Image.Resampling.LANCZOS
+            )
+
+            photo = ImageTk.PhotoImage(
+                image
+            )
+
+            hero_image_ref[0] = photo
+
+            # Keep reference globally as well.
+            image_refs.append(photo)
+
+            hero.delete("all")
+
+            # --------------------------------------------------
+            # IMAGE
+            # --------------------------------------------------
+
+            hero.create_image(
+                0,
+                0,
+                image=photo,
+                anchor="nw"
+            )
+
+            # --------------------------------------------------
+            # TEXT SHADOW
+            # --------------------------------------------------
+            # Very subtle shadow only.
+            # There is NO background rectangle.
+            # --------------------------------------------------
+
+            hero.create_text(
+                48,
+                48,
+                text="Myths",
+                anchor="w",
+                font=("Arial", 10),
+                fill="#071522"
+            )
+
+            hero.create_text(
+                48,
+                83,
+                text="✥  Discover the Myths",
+                anchor="w",
+                font=("Georgia", 25, "bold"),
+                fill="#071522"
+            )
+
+            hero.create_text(
+                48,
+                132,
+                text=(
+                    "Discover ancient stories, legendary heroes, "
+                    "and magical beings\n"
+                    "from Bhutan and cultures around the world."
+                ),
+                anchor="w",
+                font=("Arial", 10),
+                fill="#071522",
+                justify="left"
+            )
+
+            # --------------------------------------------------
+            # MAIN TEXT
+            # --------------------------------------------------
+
+            hero.create_text(
+                45,
+                45,
+                text="Myths",
+                anchor="w",
+                font=("Arial", 10),
+                fill=GOLD
+            )
+
+            hero.create_text(
+                45,
+                80,
+                text="✥  Discover the Myths",
+                anchor="w",
+                font=("Georgia", 25, "bold"),
+                fill=TEXT
+            )
+
+            hero.create_text(
+                45,
+                129,
+                text=(
+                    "Discover ancient stories, legendary heroes, "
+                    "and magical beings\n"
+                    "from Bhutan and cultures around the world."
+                ),
+                anchor="w",
+                font=("Arial", 10),
+                fill=LIGHT_TEXT,
+                justify="left"
+            )
+
+        except Exception as error:
+
+            print(
+                "Hero image error:",
+                error
+            )
 
 
-    # ==================================================
-    # HERO TEXT
-    # ==================================================
-
-    # Slight dark transparent-style box
-    # to make the text easy to see
-
-    hero_text = tk.Frame(
-        hero,
-        bg="#061b2b"
+    hero.bind(
+        "<Configure>",
+        update_hero
     )
 
-    hero_text.place(
-        x=25,
-        y=25
-    )
-
-
-    tk.Label(
-        hero_text,
-        text="Myths",
-        font=("Arial", 10),
-        bg="#061b2b",
-        fg=GOLD
-    ).pack(
-        anchor="w"
-    )
-
-
-    tk.Label(
-        hero_text,
-        text="✥  Discover the Myths",
-        font=("Georgia", 25, "bold"),
-        bg="#061b2b",
-        fg=TEXT
-    ).pack(
-        anchor="w",
-        pady=5
-    )
-
-
-    tk.Label(
-        hero_text,
-        text="Discover ancient stories, legendary heroes, and magical beings\n"
-             "from Bhutan and cultures around the world.",
-        font=("Arial", 10),
-        bg="#061b2b",
-        fg=LIGHT_TEXT,
-        justify="left"
-    ).pack()
+    # Force initial drawing.
+    hero.update_idletasks()
+    update_hero()
 
 
     # ==================================================
@@ -804,20 +944,33 @@ def show_myths(parent):
     )
 
 
-    # ==================================================
-
-
 # ==================================================
 # OPTIONAL STANDALONE TEST
 # ==================================================
 
 if __name__ == "__main__":
-    test_root = tk.Tk()
-    test_root.title("MythLab - Myths")
-    test_root.geometry("1280x900")
-    test_root.minsize(1000, 700)
-    test_root.configure(bg=BG)
 
-    show_myths(test_root)
+    test_root = tk.Tk()
+
+    test_root.title(
+        "MythLab - Myths"
+    )
+
+    test_root.geometry(
+        "1280x900"
+    )
+
+    test_root.minsize(
+        1000,
+        700
+    )
+
+    test_root.configure(
+        bg=BG
+    )
+
+    show_myths(
+        test_root
+    )
 
     test_root.mainloop()

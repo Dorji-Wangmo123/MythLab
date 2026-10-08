@@ -1,6 +1,7 @@
+# task.py
 import tkinter as tk
 from tkinter import messagebox
-from PIL import Image, ImageTk, ImageDraw
+from PIL import Image, ImageTk
 from pathlib import Path
 
 
@@ -52,115 +53,58 @@ IMAGE_FOLDER = Path(__file__).resolve().parent
 # ============================================================
 
 def find_image(keywords):
-
-    extensions = {
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".webp",
-        ".bmp"
-    }
+    extensions = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
 
     files = [
         file
         for file in IMAGE_FOLDER.iterdir()
-        if file.is_file()
-        and file.suffix.lower() in extensions
+        if file.is_file() and file.suffix.lower() in extensions
     ]
 
-    # Find a file containing ALL keywords
     for file in files:
-
         filename = file.stem.lower()
-
-        if all(
-            word.lower() in filename
-            for word in keywords
-        ):
+        if all(word.lower() in filename for word in keywords):
             return file
 
-    # Find a file containing ANY keyword
     for file in files:
-
         filename = file.stem.lower()
-
-        if any(
-            word.lower() in filename
-            for word in keywords
-        ):
+        if any(word.lower() in filename for word in keywords):
             return file
 
     return None
 
 
-def load_task_image(
-    keywords,
-    width=54,
-    height=48
-):
-
+def load_task_image(keywords, width=54, height=48):
     image_path = find_image(keywords)
 
     if image_path is None:
         return None
 
     try:
-
-        image = Image.open(
-            image_path
-        ).convert("RGB")
-
+        image = Image.open(image_path).convert("RGB")
         original_width, original_height = image.size
 
-        scale = max(
-            width / original_width,
-            height / original_height
-        )
-
-        new_width = int(
-            original_width * scale
-        )
-
-        new_height = int(
-            original_height * scale
-        )
+        scale = max(width / original_width, height / original_height)
+        new_width = int(original_width * scale)
+        new_height = int(original_height * scale)
 
         image = image.resize(
             (new_width, new_height),
             Image.Resampling.LANCZOS
         )
 
-        left = (
-            new_width - width
-        ) // 2
-
-        top = (
-            new_height - height
-        ) // 2
-
+        left = (new_width - width) // 2
+        top = (new_height - height) // 2
         right = left + width
         bottom = top + height
 
-        image = image.crop(
-            (
-                left,
-                top,
-                right,
-                bottom
-            )
-        )
+        image = image.crop((left, top, right, bottom))
 
         return ImageTk.PhotoImage(image)
 
     except Exception as error:
-
-        print(
-            "Could not load image:",
-            image_path
-        )
-
+        print("Could not load image:", image_path)
         print(error)
-
         return None
 
 
@@ -183,85 +127,61 @@ TASK_IMAGE_KEYWORDS = [
 # ============================================================
 
 tasks = [
-
     {
         "title": "Read about the Thunder Dragon",
-        "description":
-            "Learn about the Thunder Dragon and its role in Bhutanese mythology.",
+        "description": "Learn about the Thunder Dragon and its role in Bhutanese mythology.",
         "priority": "High",
         "status": "Pending",
         "date": "25 Apr 2026",
         "icon": "🐉",
-        "image_keywords":
-            TASK_IMAGE_KEYWORDS[0]
+        "image_keywords": TASK_IMAGE_KEYWORDS[0]
     },
-
     {
-        "title":
-            "Explore Bhutanese mythical creatures",
-        "description":
-            "Learn about Druk, Yeti, Migoi and other beings.",
+        "title": "Explore Bhutanese mythical creatures",
+        "description": "Learn about Druk, Yeti, Migoi and other beings.",
         "priority": "Medium",
         "status": "Completed",
         "date": "24 Apr 2026",
         "icon": "👹",
-        "image_keywords":
-            TASK_IMAGE_KEYWORDS[1]
+        "image_keywords": TASK_IMAGE_KEYWORDS[1]
     },
-
     {
-        "title":
-            "Read the story of the Great Yeti",
-        "description":
-            "Discover the legend of the Yeti in the Himalayas.",
+        "title": "Read the story of the Great Yeti",
+        "description": "Discover the legend of the Yeti in the Himalayas.",
         "priority": "High",
         "status": "Pending",
         "date": "27 Apr 2026",
         "icon": "🏔",
-        "image_keywords":
-            TASK_IMAGE_KEYWORDS[2]
+        "image_keywords": TASK_IMAGE_KEYWORDS[2]
     },
-
     {
-        "title":
-            "Watch The Firebird",
-        "description":
-            "Learn about the symbol of rebirth and hope.",
+        "title": "Watch The Firebird",
+        "description": "Learn about the symbol of rebirth and hope.",
         "priority": "Low",
         "status": "Pending",
         "date": "28 Apr 2026",
         "icon": "🔥",
-        "image_keywords":
-            TASK_IMAGE_KEYWORDS[3]
+        "image_keywords": TASK_IMAGE_KEYWORDS[3]
     },
-
     {
-        "title":
-            "Explore Punakha Dzong",
-        "description":
-            "Learn about the history and significance of Punakha Dzong.",
+        "title": "Explore Punakha Dzong",
+        "description": "Learn about the history and significance of Punakha Dzong.",
         "priority": "Medium",
         "status": "Completed",
         "date": "22 Apr 2026",
         "icon": "🏯",
-        "image_keywords":
-            TASK_IMAGE_KEYWORDS[4]
+        "image_keywords": TASK_IMAGE_KEYWORDS[4]
     },
-
     {
-        "title":
-            "Take the Mythology Quiz",
-        "description":
-            "Test what you've learned so far.",
+        "title": "Take the Mythology Quiz",
+        "description": "Test what you've learned so far.",
         "priority": "High",
         "status": "Pending",
         "date": "30 Apr 2026",
         "icon": "🐲",
-        "image_keywords":
-            TASK_IMAGE_KEYWORDS[5]
+        "image_keywords": TASK_IMAGE_KEYWORDS[5]
     }
 ]
-
 
 current_tasks = tasks.copy()
 
@@ -272,41 +192,24 @@ current_tasks = tasks.copy()
 
 task_images = {}
 
-for number, keywords in enumerate(
-    TASK_IMAGE_KEYWORDS
-):
-
-    task_images[number] = load_task_image(
-        keywords,
-        54,
-        48
-    )
+for number, keywords in enumerate(TASK_IMAGE_KEYWORDS):
+    task_images[number] = load_task_image(keywords, 54, 48)
 
 
 # ============================================================
 # HELPER FUNCTIONS
 # ============================================================
 
-def rounded_box(
-    parent,
-    width,
-    height,
-    bg,
-    border=None
-):
-
+def rounded_box(parent, width, height, bg, border=None):
     frame = tk.Frame(
         parent,
         width=width,
         height=height,
         bg=bg,
-        highlightbackground=
-            border if border else bg,
+        highlightbackground=border if border else bg,
         highlightthickness=1
     )
-
     frame.pack_propagate(False)
-
     return frame
 
 
@@ -319,20 +222,12 @@ def create_label(
     weight="normal",
     **kwargs
 ):
-
     return tk.Label(
         parent,
         text=text,
-        bg=kwargs.pop(
-            "bg",
-            parent.cget("bg")
-        ),
+        bg=kwargs.pop("bg", parent.cget("bg")),
         fg=color,
-        font=(
-            font,
-            size,
-            weight
-        ),
+        font=(font, size, weight),
         **kwargs
     )
 
@@ -342,7 +237,6 @@ def create_label(
 # ============================================================
 
 def update_statistics():
-
     total = len(current_tasks)
 
     completed = sum(
@@ -359,25 +253,28 @@ def update_statistics():
         if task["priority"] == "High"
     )
 
-    progress_label.config(
-        text=f"{completed}/{total}"
-    )
+    progress_label.config(text=f"{completed}/{total}")
 
-    total_label.config(
-        text=str(total)
-    )
+    total_label.config(text=str(total))
+    completed_label.config(text=str(completed))
+    pending_label.config(text=str(pending))
+    high_label.config(text=str(high))
 
-    completed_label.config(
-        text=str(completed)
-    )
+    if total > 0:
+        arc_extent = 180 * (completed / total)
+    else:
+        arc_extent = 0
 
-    pending_label.config(
-        text=str(pending)
-    )
+    circle.itemconfig(progress_arc, extent=arc_extent)
 
-    high_label.config(
-        text=str(high)
-    )
+    if "Completed" in legend_labels:
+        legend_labels["Completed"].config(text=str(completed))
+
+    if "Pending" in legend_labels:
+        legend_labels["Pending"].config(text=str(pending))
+
+    if "Overdue" in legend_labels:
+        legend_labels["Overdue"].config(text="0")
 
 
 # ============================================================
@@ -385,13 +282,9 @@ def update_statistics():
 # ============================================================
 
 def toggle_task(task):
-
     if task["status"] == "Completed":
-
         task["status"] = "Pending"
-
     else:
-
         task["status"] = "Completed"
 
     refresh_tasks()
@@ -399,16 +292,13 @@ def toggle_task(task):
 
 
 def delete_task(task):
-
     answer = messagebox.askyesno(
         "Delete Task",
         f"Do you want to delete:\n\n{task['title']}?"
     )
 
     if answer:
-
         if task in current_tasks:
-
             current_tasks.remove(task)
 
         refresh_tasks()
@@ -416,9 +306,7 @@ def delete_task(task):
 
 
 def edit_task(task):
-
     window = tk.Toplevel(root)
-
     window.title("Edit Task")
     window.geometry("450x330")
     window.configure(bg=BG)
@@ -430,9 +318,7 @@ def edit_task(task):
         bg=BG,
         fg=GOLD,
         font=("Georgia", 20, "bold")
-    ).pack(
-        pady=20
-    )
+    ).pack(pady=20)
 
     tk.Label(
         window,
@@ -440,10 +326,7 @@ def edit_task(task):
         bg=BG,
         fg=WHITE,
         font=("Segoe UI", 10)
-    ).pack(
-        anchor="w",
-        padx=30
-    )
+    ).pack(anchor="w", padx=30)
 
     title_entry = tk.Entry(
         window,
@@ -457,13 +340,10 @@ def edit_task(task):
     title_entry.pack(
         fill="x",
         padx=30,
-        pady=8
+        pady=(0, 15)
     )
 
-    title_entry.insert(
-        0,
-        task["title"]
-    )
+    title_entry.insert(0, task["title"])
 
     tk.Label(
         window,
@@ -471,10 +351,7 @@ def edit_task(task):
         bg=BG,
         fg=WHITE,
         font=("Segoe UI", 10)
-    ).pack(
-        anchor="w",
-        padx=30
-    )
+    ).pack(anchor="w", padx=30)
 
     desc_entry = tk.Entry(
         window,
@@ -488,22 +365,16 @@ def edit_task(task):
     desc_entry.pack(
         fill="x",
         padx=30,
-        pady=8
+        pady=(0, 20)
     )
 
-    desc_entry.insert(
-        0,
-        task["description"]
-    )
+    desc_entry.insert(0, task["description"])
 
     def save_changes():
-
         task["title"] = title_entry.get()
-
         task["description"] = desc_entry.get()
 
         refresh_tasks()
-
         window.destroy()
 
     tk.Button(
@@ -518,9 +389,7 @@ def edit_task(task):
         padx=20,
         pady=8,
         cursor="hand2"
-    ).pack(
-        pady=20
-    )
+    ).pack(pady=20)
 
 
 # ============================================================
@@ -530,32 +399,28 @@ def edit_task(task):
 def filter_tasks(filter_type):
 
     if filter_type == "All":
-
         filtered = current_tasks
 
     elif filter_type == "Pending":
-
         filtered = [
-            t
-            for t in current_tasks
+            t for t in current_tasks
             if t["status"] == "Pending"
         ]
 
     elif filter_type == "In Progress":
-
         filtered = [
-            t
-            for t in current_tasks
+            t for t in current_tasks
             if t["status"] == "In Progress"
         ]
 
     elif filter_type == "Completed":
-
         filtered = [
-            t
-            for t in current_tasks
+            t for t in current_tasks
             if t["status"] == "Completed"
         ]
+
+    else:
+        filtered = current_tasks
 
     display_tasks(filtered)
 
@@ -565,16 +430,10 @@ def search_tasks(*args):
     keyword = search_var.get().lower()
 
     filtered = [
-
         task
-
         for task in current_tasks
-
-        if keyword in
-        task["title"].lower()
-
-        or keyword in
-        task["description"].lower()
+        if keyword in task["title"].lower()
+        or keyword in task["description"].lower()
     ]
 
     display_tasks(filtered)
@@ -587,7 +446,6 @@ def search_tasks(*args):
 def display_tasks(task_list):
 
     for widget in task_container.winfo_children():
-
         widget.destroy()
 
     for task in task_list:
@@ -600,37 +458,22 @@ def display_tasks(task_list):
 
         row.pack(
             fill="x",
-            padx=3,
-            pady=0
+            padx=2,
+            pady=2
         )
 
         row.pack_propagate(False)
 
-        # ----------------------------------------------------
-        # CHECKBOX
-        # ----------------------------------------------------
+        checked = task["status"] == "Completed"
 
-        checked = (
-            task["status"] == "Completed"
-        )
-
-        check_text = (
-            "☑"
-            if checked
-            else "☐"
-        )
+        check_text = "☑" if checked else "☐"
 
         check_button = tk.Button(
             row,
             text=check_text,
-            command=lambda t=task:
-                toggle_task(t),
+            command=lambda t=task: toggle_task(t),
             bg=PANEL,
-            fg=(
-                GOLD
-                if checked
-                else "#8d9ba5"
-            ),
+            fg=GOLD if checked else "#8d9ba5",
             activebackground=PANEL,
             activeforeground=GOLD,
             borderwidth=0,
@@ -639,19 +482,13 @@ def display_tasks(task_list):
         )
 
         check_button.place(
-            x=13,
+            x=12,
             y=20
         )
 
-        # ----------------------------------------------------
-        # REAL IMAGE
-        # ----------------------------------------------------
-
         image_number = tasks.index(task)
 
-        real_image = task_images.get(
-            image_number
-        )
+        real_image = task_images.get(image_number)
 
         if real_image:
 
@@ -673,61 +510,59 @@ def display_tasks(task_list):
             )
 
         image_box.place(
-            x=58,
-            y=12,
+            x=56,
+            y=13,
             width=54,
             height=48
         )
 
-        # ----------------------------------------------------
-        # TASK TITLE
-        # ----------------------------------------------------
+        title_color = MUTED if checked else WHITE
 
-        title_color = (
-            MUTED
-            if checked
-            else WHITE
-        )
+        short_title = task["title"]
+
+        if len(short_title) > 24:
+            short_title = short_title[:21] + "..."
 
         title = tk.Label(
             row,
-            text=task["title"],
+            text=short_title,
             bg=PANEL,
             fg=title_color,
             font=("Segoe UI", 9, "bold"),
-            anchor="w"
+            anchor="w",
+            justify="left",
+            wraplength=200
         )
 
         title.place(
-            x=120,
+            x=118,
             y=8,
-            width=245,
+            width=220,
             height=22
         )
 
-        # ----------------------------------------------------
-        # DESCRIPTION
-        # ----------------------------------------------------
+        short_desc = task["description"]
+
+        if len(short_desc) > 46:
+            short_desc = short_desc[:43] + "..."
 
         description = tk.Label(
             row,
-            text=task["description"],
+            text=short_desc,
             bg=PANEL,
             fg=MUTED,
             font=("Segoe UI", 7),
-            anchor="w"
+            anchor="w",
+            justify="left",
+            wraplength=220
         )
 
         description.place(
-            x=120,
+            x=118,
             y=32,
-            width=245,
+            width=220,
             height=18
         )
-
-        # ----------------------------------------------------
-        # PRIORITY
-        # ----------------------------------------------------
 
         priority_colors = {
             "High": RED,
@@ -738,9 +573,7 @@ def display_tasks(task_list):
         priority = tk.Label(
             row,
             text=task["priority"],
-            bg=priority_colors[
-                task["priority"]
-            ],
+            bg=priority_colors[task["priority"]],
             fg=WHITE,
             font=("Segoe UI", 8, "bold"),
             width=8,
@@ -748,13 +581,9 @@ def display_tasks(task_list):
         )
 
         priority.place(
-            x=380,
+            x=368,
             y=24
         )
-
-        # ----------------------------------------------------
-        # STATUS
-        # ----------------------------------------------------
 
         status_bg = (
             GREEN
@@ -773,13 +602,9 @@ def display_tasks(task_list):
         )
 
         status.place(
-            x=480,
+            x=468,
             y=24
         )
-
-        # ----------------------------------------------------
-        # DATE
-        # ----------------------------------------------------
 
         date = tk.Label(
             row,
@@ -790,19 +615,14 @@ def display_tasks(task_list):
         )
 
         date.place(
-            x=600,
+            x=586,
             y=27
         )
-
-        # ----------------------------------------------------
-        # EDIT BUTTON
-        # ----------------------------------------------------
 
         edit = tk.Button(
             row,
             text="✎",
-            command=lambda t=task:
-                edit_task(t),
+            command=lambda t=task: edit_task(t),
             bg=PANEL,
             fg=GOLD,
             activebackground=PANEL2,
@@ -813,19 +633,14 @@ def display_tasks(task_list):
         )
 
         edit.place(
-            x=690,
+            x=685,
             y=18
         )
-
-        # ----------------------------------------------------
-        # DELETE BUTTON
-        # ----------------------------------------------------
 
         delete = tk.Button(
             row,
             text="♜",
-            command=lambda t=task:
-                delete_task(t),
+            command=lambda t=task: delete_task(t),
             bg=PANEL,
             fg=RED,
             activebackground=PANEL2,
@@ -836,15 +651,13 @@ def display_tasks(task_list):
         )
 
         delete.place(
-            x=725,
+            x=720,
             y=20
         )
 
 
 def refresh_tasks():
-
     display_tasks(current_tasks)
-
     update_statistics()
 
 
@@ -879,7 +692,7 @@ logo = tk.Label(
 )
 
 logo.pack(
-    pady=(20, 0)
+    pady=(24, 4)
 )
 
 logo_title = tk.Label(
@@ -901,7 +714,7 @@ tagline = tk.Label(
 )
 
 tagline.pack(
-    pady=(0, 25)
+    pady=(4, 28)
 )
 
 
@@ -909,17 +722,9 @@ tagline.pack(
 # SIDEBAR BUTTON
 # ============================================================
 
-def sidebar_button(
-    text,
-    icon,
-    active=False
-):
+def sidebar_button(text, icon, active=False):
 
-    bg = (
-        "#3d3b31"
-        if active
-        else SIDEBAR
-    )
+    bg = "#3d3b31" if active else SIDEBAR
 
     button = tk.Frame(
         sidebar,
@@ -930,7 +735,7 @@ def sidebar_button(
     button.pack(
         fill="x",
         padx=8,
-        pady=2
+        pady=3
     )
 
     button.pack_propagate(False)
@@ -967,11 +772,7 @@ sidebar_button("Home", "⌂")
 sidebar_button("Myths", "📖")
 sidebar_button("Creatures", "🐉")
 sidebar_button("Regions", "🌐")
-sidebar_button(
-    "My Tasks",
-    "▣",
-    True
-)
+sidebar_button("My Tasks", "▣", True)
 sidebar_button("Quiz", "?")
 sidebar_button("Favourites", "♡")
 sidebar_button("About", "ⓘ")
@@ -990,7 +791,7 @@ quote_frame.pack(
     side="bottom",
     fill="x",
     padx=18,
-    pady=25
+    pady=(24, 28)
 )
 
 tk.Label(
@@ -1058,44 +859,54 @@ header.pack_propagate(False)
 # HEADER BACKGROUND IMAGE
 # ============================================================
 
-header_image_path = find_image(
-    ["welcome"]
+header_image_path = find_image(["welcome"])
+
+if header_image_path is None:
+    header_image_path = find_image(["background"])
+
+if header_image_path is None:
+    header_image_path = find_image(["mountain"])
+
+if header_image_path is None:
+    header_image_path = find_image(["bhutan"])
+
+
+# ============================================================
+# HEADER CANVAS
+# ============================================================
+# The canvas lets the image stay visible behind the text.
+# Unlike normal Labels, canvas text has no rectangular
+# background behind it.
+# ============================================================
+
+header_canvas = tk.Canvas(
+    header,
+    bg=BG,
+    highlightthickness=0,
+    borderwidth=0
 )
 
-if header_image_path is None:
+header_canvas.pack(
+    fill="both",
+    expand=True
+)
 
-    header_image_path = find_image(
-        ["background"]
-    )
-
-if header_image_path is None:
-
-    header_image_path = find_image(
-        ["mountain"]
-    )
-
-if header_image_path is None:
-
-    header_image_path = find_image(
-        ["bhutan"]
-    )
-
-
-header_image_label = None
 header_photo = None
+header_image_item = None
 
 
 def update_header_image(event=None):
 
     global header_photo
+    global header_image_item
 
     if header_image_path is None:
         return
 
     try:
 
-        width = header.winfo_width()
-        height = header.winfo_height()
+        width = header_canvas.winfo_width()
+        height = header_canvas.winfo_height()
 
         if width <= 1 or height <= 1:
             return
@@ -1121,13 +932,29 @@ def update_header_image(event=None):
             0.35
         )
 
-        header_photo = ImageTk.PhotoImage(
-            image
-        )
+        header_photo = ImageTk.PhotoImage(image)
 
-        header_image_label.config(
-            image=header_photo
-        )
+        if header_image_item is None:
+
+            header_image_item = header_canvas.create_image(
+                0,
+                0,
+                image=header_photo,
+                anchor="nw"
+            )
+
+            header_canvas.tag_lower(
+                header_image_item
+            )
+
+        else:
+
+            header_canvas.itemconfig(
+                header_image_item,
+                image=header_photo
+            )
+
+        position_header_icons()
 
     except Exception as error:
 
@@ -1137,73 +964,44 @@ def update_header_image(event=None):
         )
 
 
-if header_image_path:
-
-    header_image_label = tk.Label(
-        header,
-        bg=BG,
-        borderwidth=0
-    )
-
-    header_image_label.place(
-        x=0,
-        y=0,
-        relwidth=1,
-        relheight=1
-    )
-
-    header.bind(
-        "<Configure>",
-        update_header_image
-    )
-
-
 # ============================================================
 # HEADER TEXT
 # ============================================================
 
-tk.Label(
-    header,
+header_canvas.create_text(
+    35,
+    70,
     text="▣",
-    bg=BG,
-    fg=GOLD,
-    font=("Segoe UI", 36)
-).place(
-    x=35,
-    y=50
+    fill=GOLD,
+    font=("Segoe UI", 36),
+    anchor="w"
 )
 
-tk.Label(
-    header,
+header_canvas.create_text(
+    85,
+    67,
     text="My Tasks",
-    bg=BG,
-    fg=LIGHT_GOLD,
-    font=("Georgia", 30, "bold")
-).place(
-    x=85,
-    y=48
+    fill=LIGHT_GOLD,
+    font=("Georgia", 30, "bold"),
+    anchor="w"
 )
 
-tk.Label(
-    header,
+header_canvas.create_text(
+    87,
+    94,
     text="Complete your learning tasks, track your progress and build your knowledge",
-    bg=BG,
-    fg=TEXT,
-    font=("Segoe UI", 9)
-).place(
-    x=87,
-    y=91
+    fill=TEXT,
+    font=("Segoe UI", 9),
+    anchor="w"
 )
 
-tk.Label(
-    header,
+header_canvas.create_text(
+    87,
+    110,
     text="about myths, legends and creatures.",
-    bg=BG,
-    fg=TEXT,
-    font=("Segoe UI", 9)
-).place(
-    x=87,
-    y=108
+    fill=TEXT,
+    font=("Segoe UI", 9),
+    anchor="w"
 )
 
 
@@ -1211,37 +1009,66 @@ tk.Label(
 # TOP RIGHT ICONS
 # ============================================================
 
-tk.Label(
-    header,
+search_icon = header_canvas.create_text(
+    0,
+    0,
     text="⌕",
-    bg=BG,
-    fg=GOLD,
-    font=("Segoe UI", 25)
-).place(
-    relx=0.91,
-    y=18
+    fill=GOLD,
+    font=("Segoe UI", 25),
+    anchor="center",
+    tags="header_icon"
 )
 
-tk.Label(
-    header,
+notification_icon = header_canvas.create_text(
+    0,
+    0,
     text="♧",
-    bg=BG,
-    fg=GOLD,
-    font=("Segoe UI", 20)
-).place(
-    relx=0.95,
-    y=20
+    fill=GOLD,
+    font=("Segoe UI", 20),
+    anchor="center",
+    tags="header_icon"
 )
 
-tk.Label(
-    header,
+profile_icon = header_canvas.create_text(
+    0,
+    0,
     text="●",
-    bg=BG,
-    fg=LIGHT_GOLD,
-    font=("Segoe UI", 25)
-).place(
-    relx=0.98,
-    y=17
+    fill=LIGHT_GOLD,
+    font=("Segoe UI", 25),
+    anchor="center",
+    tags="header_icon"
+)
+
+
+def position_header_icons():
+
+    width = header_canvas.winfo_width()
+
+    if width <= 1:
+        return
+
+    header_canvas.coords(
+        search_icon,
+        width * 0.91,
+        31
+    )
+
+    header_canvas.coords(
+        notification_icon,
+        width * 0.95,
+        30
+    )
+
+    header_canvas.coords(
+        profile_icon,
+        width * 0.98,
+        30
+    )
+
+
+header_canvas.bind(
+    "<Configure>",
+    update_header_image
 )
 
 
@@ -1257,14 +1084,13 @@ content = tk.Frame(
 content.pack(
     fill="both",
     expand=True,
-    padx=18,
-    pady=(0, 12)
+    padx=20,
+    pady=16
 )
 
 
 # ============================================================
 # LEFT CONTENT
-# KEEP WIDE
 # ============================================================
 
 left_content = tk.Frame(
@@ -1286,7 +1112,7 @@ left_content.pack(
 filter_bar = tk.Frame(
     left_content,
     bg=PANEL,
-    height=55,
+    height=56,
     highlightbackground=BORDER,
     highlightthickness=1
 )
@@ -1298,71 +1124,40 @@ filter_bar.pack(
 filter_bar.pack_propagate(False)
 
 
-def filter_button(
-    text,
-    active=False
-):
+def filter_button(text, active=False):
 
     button = tk.Button(
         filter_bar,
         text=text,
-        command=lambda:
-            filter_tasks(
-                "All"
-                if text == "All Tasks"
-                else text
-            ),
-        bg=(
-            GOLD
-            if active
-            else PANEL
+        command=lambda: filter_tasks(
+            "All" if text == "All Tasks" else text
         ),
-        fg=(
-            BG
-            if active
-            else WHITE
-        ),
+        bg=GOLD if active else PANEL,
+        fg=BG if active else WHITE,
         activebackground=LIGHT_GOLD,
         activeforeground=BG,
         relief="flat",
         font=(
             "Segoe UI",
             9,
-            "bold"
-            if active
-            else "normal"
+            "bold" if active else "normal"
         ),
-        padx=15,
-        pady=5,
+        padx=16,
+        pady=6,
         cursor="hand2"
     )
 
     button.pack(
         side="left",
-        padx=(
-            8 if active else 2,
-            2
-        ),
-        pady=12
+        padx=(10 if active else 3, 3),
+        pady=14
     )
 
 
-filter_button(
-    "All Tasks",
-    True
-)
-
-filter_button(
-    "Pending"
-)
-
-filter_button(
-    "In Progress"
-)
-
-filter_button(
-    "Completed"
-)
+filter_button("All Tasks", True)
+filter_button("Pending")
+filter_button("In Progress")
+filter_button("Completed")
 
 
 # ============================================================
@@ -1388,10 +1183,10 @@ search = tk.Entry(
 
 search.pack(
     side="right",
-    padx=15,
-    pady=12,
-    ipady=5,
-    ipadx=40
+    padx=16,
+    pady=14,
+    ipady=6,
+    ipadx=42
 )
 
 
@@ -1402,7 +1197,7 @@ search.pack(
 table_header = tk.Frame(
     left_content,
     bg=PANEL2,
-    height=40
+    height=42
 )
 
 table_header.pack(
@@ -1419,7 +1214,7 @@ tk.Label(
     font=("Segoe UI", 8, "bold")
 ).place(
     x=60,
-    y=13
+    y=14
 )
 
 tk.Label(
@@ -1429,8 +1224,8 @@ tk.Label(
     fg=TEXT,
     font=("Segoe UI", 8, "bold")
 ).place(
-    x=380,
-    y=13
+    x=368,
+    y=14
 )
 
 tk.Label(
@@ -1440,8 +1235,8 @@ tk.Label(
     fg=TEXT,
     font=("Segoe UI", 8, "bold")
 ).place(
-    x=480,
-    y=13
+    x=468,
+    y=14
 )
 
 tk.Label(
@@ -1451,8 +1246,8 @@ tk.Label(
     fg=TEXT,
     font=("Segoe UI", 8, "bold")
 ).place(
-    x=600,
-    y=13
+    x=586,
+    y=14
 )
 
 
@@ -1480,14 +1275,14 @@ task_container.pack(
 keep_going = tk.Frame(
     left_content,
     bg=PANEL,
-    height=72,
+    height=76,
     highlightbackground=BORDER,
     highlightthickness=1
 )
 
 keep_going.pack(
     fill="x",
-    pady=(12, 0)
+    pady=(14, 0)
 )
 
 keep_going.pack_propagate(False)
@@ -1497,10 +1292,10 @@ tk.Label(
     text="💡",
     bg=PANEL,
     fg=GOLD,
-    font=("Segoe UI Emoji", 27)
+    font=("Segoe UI Emoji", 28)
 ).pack(
     side="left",
-    padx=18
+    padx=(18, 16)
 )
 
 keep_text_frame = tk.Frame(
@@ -1521,7 +1316,7 @@ tk.Label(
     font=("Georgia", 13, "bold")
 ).pack(
     anchor="w",
-    pady=(15, 0)
+    pady=(16, 2)
 )
 
 tk.Label(
@@ -1548,7 +1343,7 @@ right = tk.Frame(
 right.pack(
     side="right",
     fill="y",
-    padx=(12, 0)
+    padx=(16, 0)
 )
 
 right.pack_propagate(False)
@@ -1561,7 +1356,7 @@ right.pack_propagate(False)
 progress_box = tk.Frame(
     right,
     bg=PANEL,
-    height=150,
+    height=154,
     highlightbackground=BORDER,
     highlightthickness=1
 )
@@ -1580,10 +1375,9 @@ tk.Label(
     font=("Georgia", 12, "bold")
 ).pack(
     anchor="w",
-    padx=15,
-    pady=10
+    padx=16,
+    pady=(12, 10)
 )
-
 
 circle = tk.Canvas(
     progress_box,
@@ -1594,8 +1388,8 @@ circle = tk.Canvas(
 )
 
 circle.place(
-    x=10,
-    y=43
+    x=12,
+    y=44
 )
 
 circle.create_oval(
@@ -1607,13 +1401,13 @@ circle.create_oval(
     width=9
 )
 
-circle.create_arc(
+progress_arc = circle.create_arc(
     10,
     10,
     80,
     80,
     start=45,
-    extent=180,
+    extent=0,
     style="arc",
     outline=GREEN_LIGHT,
     width=9
@@ -1621,15 +1415,16 @@ circle.create_arc(
 
 progress_label = tk.Label(
     circle,
-    text="3/6",
+    text="0/0",
     bg=PANEL,
     fg=WHITE,
-    font=("Segoe UI", 13, "bold")
+    font=("Segoe UI", 12, "bold")
 )
 
 progress_label.place(
-    x=31,
-    y=29
+    x=45,
+    y=30,
+    anchor="center"
 )
 
 tk.Label(
@@ -1639,25 +1434,22 @@ tk.Label(
     fg=MUTED,
     font=("Segoe UI", 7)
 ).place(
-    x=31,
-    y=47
+    x=45,
+    y=52,
+    anchor="center"
 )
 
 
 legend_items = [
-    ("Completed", GREEN, "3"),
-    ("Pending", "#6996c2", "3"),
-    ("Overdue", RED, "0")
+    ("Completed", GREEN),
+    ("Pending", "#6996c2"),
+    ("Overdue", RED)
 ]
 
+legend_labels = {}
 
-for i, (
-    name,
-    color,
-    value
-) in enumerate(
-    legend_items
-):
+
+for i, (name, color) in enumerate(legend_items):
 
     y = 57 + i * 25
 
@@ -1668,7 +1460,7 @@ for i, (
         fg=color,
         font=("Segoe UI", 12)
     ).place(
-        x=140,
+        x=142,
         y=y
     )
 
@@ -1679,20 +1471,24 @@ for i, (
         fg=TEXT,
         font=("Segoe UI", 8)
     ).place(
-        x=157,
+        x=158,
         y=y + 2
     )
 
-    tk.Label(
+    value_label = tk.Label(
         progress_box,
-        text=value,
+        text="0",
         bg=PANEL,
         fg=WHITE,
         font=("Segoe UI", 8, "bold")
-    ).place(
-        x=245,
+    )
+
+    value_label.place(
+        x=246,
         y=y + 2
     )
+
+    legend_labels[name] = value_label
 
 
 # ============================================================
@@ -1702,14 +1498,14 @@ for i, (
 overview = tk.Frame(
     right,
     bg=PANEL,
-    height=170,
+    height=175,
     highlightbackground=BORDER,
     highlightthickness=1
 )
 
 overview.pack(
     fill="x",
-    pady=10
+    pady=12
 )
 
 overview.pack_propagate(False)
@@ -1722,8 +1518,8 @@ tk.Label(
     font=("Georgia", 12, "bold")
 ).pack(
     anchor="w",
-    padx=15,
-    pady=10
+    padx=16,
+    pady=(12, 10)
 )
 
 
@@ -1741,7 +1537,7 @@ def overview_card(
         parent,
         bg="#0d2637",
         width=120,
-        height=60
+        height=62
     )
 
     card.place(
@@ -1791,40 +1587,40 @@ def overview_card(
 
 total_label = overview_card(
     overview,
-    10,
-    45,
+    12,
+    48,
     "Total Tasks",
-    "6",
+    "0",
     "▣",
     GOLD
 )
 
 completed_label = overview_card(
     overview,
-    140,
-    45,
+    142,
+    48,
     "Completed",
-    "3",
+    "0",
     "✓",
     GREEN_LIGHT
 )
 
 pending_label = overview_card(
     overview,
-    10,
-    110,
+    12,
+    114,
     "Pending",
-    "3",
+    "0",
     "◷",
     "#6f9ec5"
 )
 
 high_label = overview_card(
     overview,
-    140,
-    110,
+    142,
+    114,
     "High Priority",
-    "3",
+    "0",
     "!",
     RED
 )
@@ -1837,7 +1633,7 @@ high_label = overview_card(
 guide = tk.Frame(
     right,
     bg=PANEL,
-    height=195,
+    height=200,
     highlightbackground=BORDER,
     highlightthickness=1
 )
@@ -1856,27 +1652,23 @@ tk.Label(
     font=("Georgia", 12, "bold")
 ).pack(
     anchor="w",
-    padx=15,
-    pady=10
+    padx=16,
+    pady=(12, 10)
 )
 
-
 priority_data = [
-
     (
         "!",
         "High",
         "Important tasks that you want\nto complete first.",
         RED
     ),
-
     (
         "−",
         "Medium",
         "Tasks that are important\nbut not urgent.",
         YELLOW
     ),
-
     (
         "↓",
         "Low",
@@ -1886,16 +1678,9 @@ priority_data = [
 ]
 
 
-for i, (
-    icon,
-    title,
-    description,
-    color
-) in enumerate(
-    priority_data
-):
+for i, (icon, title, description, color) in enumerate(priority_data):
 
-    y = 45 + i * 48
+    y = 48 + i * 50
 
     tk.Label(
         guide,
@@ -1906,7 +1691,7 @@ for i, (
         width=3,
         height=1
     ).place(
-        x=15,
+        x=16,
         y=y
     )
 
@@ -1917,7 +1702,7 @@ for i, (
         fg=WHITE,
         font=("Segoe UI", 8, "bold")
     ).place(
-        x=55,
+        x=56,
         y=y
     )
 
@@ -1929,8 +1714,8 @@ for i, (
         font=("Segoe UI", 7),
         justify="left"
     ).place(
-        x=55,
-        y=y + 15
+        x=56,
+        y=y + 16
     )
 
 
@@ -1941,14 +1726,14 @@ for i, (
 quote = tk.Frame(
     right,
     bg=PANEL,
-    height=115,
+    height=120,
     highlightbackground=BORDER,
     highlightthickness=1
 )
 
 quote.pack(
     fill="x",
-    pady=10
+    pady=12
 )
 
 quote.pack_propagate(False)
@@ -1963,7 +1748,7 @@ tk.Label(
 ).pack(
     anchor="w",
     padx=18,
-    pady=(25, 5)
+    pady=(20, 6)
 )
 
 tk.Label(
