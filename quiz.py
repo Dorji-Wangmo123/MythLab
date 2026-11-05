@@ -2,6 +2,8 @@
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
+from datetime import datetime
+import sqlite3
 
 from PIL import Image, ImageTk, ImageOps
 
@@ -36,8 +38,19 @@ PROJECT_DIR = Path(__file__).resolve().parent
 IMAGE_DIR = PROJECT_DIR / "assets"
 LEGACY_IMAGE_DIR = PROJECT_DIR / "images"
 
+DB_FILE = PROJECT_DIR / "mythlab.db"
+
 # Keep images in memory
 quiz_image_refs = []
+
+# Category currently chosen with the buttons under the banner
+selected_category = "All Quizzes"
+
+# Name of the logged-in user (set from main.py). None = Guest.
+quiz_username = None
+
+# The grid of quiz cards (used by "View All Quizzes" to scroll to it)
+quiz_grid_widget = None
 
 
 # ============================================================
@@ -300,12 +313,15 @@ quiz_questions = [
 # SHOW QUIZ SELECTION PAGE
 # ============================================================
 
-def show_quiz(content):
+def show_quiz(content, category_filter="All Quizzes"):
 
     global quiz_content
     global timer_job
+    global quiz_grid_widget
+    global selected_category
 
     quiz_content = content
+    selected_category = category_filter
 
     # Stop timer if returning from a quiz
     if timer_job is not None:
@@ -400,7 +416,7 @@ def show_quiz(content):
 
     for index, category in enumerate(categories):
 
-        if index == 0:
+        if category == selected_category:
 
             button_bg = GOLD
             button_fg = BG
@@ -422,6 +438,7 @@ def show_quiz(content):
             bd=1,
             padx=15,
             pady=7,
+            cursor="hand2",
             command=lambda c=category: category_selected(c)
         ).pack(
             side="left",
@@ -448,13 +465,6 @@ def show_quiz(content):
         bg=BG
     )
 
-    left.pack(
-        side="left",
-        fill="both",
-        expand=True,
-        padx=(0, 12)
-    )
-
     # Right
     right = tk.Frame(
         body,
@@ -468,6 +478,15 @@ def show_quiz(content):
     )
 
     right.pack_propagate(False)
+
+    # The right panel is packed before the left one so it keeps its
+    # full width. The left side takes whatever space is left.
+    left.pack(
+        side="left",
+        fill="both",
+        expand=True,
+        padx=(0, 12)
+    )
 
     # ========================================================
     # AVAILABLE QUIZZES TITLE
@@ -527,6 +546,8 @@ def show_quiz(content):
     quiz_grid.pack(
         fill="x"
     )
+
+    quiz_grid_widget = quiz_grid
 
     quizzes = [
 
@@ -598,7 +619,25 @@ def show_quiz(content):
 
     ]
 
-    for index, quiz in enumerate(quizzes):
+    visible_quizzes = [
+        q for q in quizzes
+        if selected_category == "All Quizzes"
+        or q["category"] == selected_category
+    ]
+
+    if not visible_quizzes:
+
+        tk.Label(
+            quiz_grid,
+            text="No quizzes in this category yet.",
+            font=("Georgia", 12, "italic"),
+            bg=BG,
+            fg=LIGHT_TEXT
+        ).pack(
+            pady=30
+        )
+
+    for index, quiz in enumerate(visible_quizzes):
 
         row = index // 3
         column = index % 3
@@ -663,7 +702,7 @@ def create_quiz_card(parent, quiz, row, column):
 
     image = load_quiz_image(
         quiz["image"],
-        (220, 105)
+        (190, 95)
     )
 
     if image:
@@ -712,15 +751,17 @@ def create_quiz_card(parent, quiz, row, column):
     # Title
     # --------------------------------------------------------
 
-    tk.Label(
+    title_label = tk.Label(
         card,
         text=quiz["title"],
         font=("Georgia", 11, "bold"),
         bg=CARD,
         fg=TEXT,
-        wraplength=220,
+        wraplength=170,
         justify="left"
-    ).pack(
+    )
+
+    title_label.pack(
         anchor="w",
         padx=10,
         pady=(7, 2)
@@ -730,17 +771,30 @@ def create_quiz_card(parent, quiz, row, column):
     # Description
     # --------------------------------------------------------
 
-    tk.Label(
+    description_label = tk.Label(
         card,
         text=quiz["description"],
         font=("Arial", 8),
         bg=CARD,
         fg=LIGHT_TEXT,
+        wraplength=170,
         justify="left"
-    ).pack(
+    )
+
+    description_label.pack(
         anchor="w",
         padx=10
     )
+
+    # Keep the text inside the card when the window is resized.
+    def fit_text(event):
+
+        width = max(event.width - 30, 100)
+
+        title_label.configure(wraplength=width)
+        description_label.configure(wraplength=width)
+
+    card.bind("<Configure>", fit_text)
 
     # --------------------------------------------------------
     # Info
@@ -1027,12 +1081,27 @@ def create_quick_links(parent):
     )
 
     links = [
-        ("▣", "View All Quizzes", "Browse all available quizzes"),
-        ("▤", "Your Results", "Check your past quiz scores"),
-        ("♜", "Leaderboard", "See how you rank")
+        (
+            "▣",
+            "View All Quizzes",
+            "Browse all available quizzes",
+            view_all_quizzes
+        ),
+        (
+            "▤",
+            "Your Results",
+            "Check your past quiz scores",
+            show_results_page
+        ),
+        (
+            "♜",
+            "Leaderboard",
+            "See how you rank",
+            show_leaderboard_page
+        )
     ]
 
-    for icon, title, description in links:
+    for icon, title, description, link_command in links:
 
         row = tk.Frame(
             frame,
@@ -1097,6 +1166,8 @@ def create_quick_links(parent):
             side="right"
         )
 
+        make_clickable(row, link_command)
+
         tk.Frame(
             frame,
             bg="#263d4b",
@@ -1106,6 +1177,400 @@ def create_quick_links(parent):
             padx=10,
             pady=3
         )
+
+
+# ============================================================
+# QUICK LINK HELPERS
+# ============================================================
+
+def make_clickable(row, command):
+
+    """Make a whole row (and everything inside it) clickable."""
+
+    def set_background(widget, colour):
+
+        try:
+            widget.configure(bg=colour)
+        except tk.TclError:
+            pass
+
+        for child in widget.winfo_children():
+            set_background(child, colour)
+
+    def bind_all_children(widget):
+
+        widget.bind(
+            "<Button-1>",
+            lambda event: command()
+        )
+
+        widget.configure(cursor="hand2")
+
+        for child in widget.winfo_children():
+            bind_all_children(child)
+
+    row.bind(
+        "<Enter>",
+        lambda event: set_background(row, CARD_DARK)
+    )
+
+    row.bind(
+        "<Leave>",
+        lambda event: set_background(row, CARD)
+    )
+
+    bind_all_children(row)
+
+
+def scroll_quiz_page(fraction=0.0):
+
+    """Scroll the quiz page (it lives inside a canvas in main.py)."""
+
+    try:
+
+        quiz_content.update_idletasks()
+
+        canvas = quiz_content.master
+
+        if hasattr(canvas, "yview_moveto"):
+            canvas.yview_moveto(fraction)
+
+    except tk.TclError:
+        pass
+
+
+def view_all_quizzes():
+
+    """Show the full quiz list and scroll down to the quiz cards."""
+
+    show_quiz(quiz_content)
+
+    try:
+
+        quiz_content.update_idletasks()
+
+        total = max(quiz_content.winfo_height(), 1)
+
+        top = (
+            quiz_grid_widget.winfo_rooty()
+            - quiz_content.winfo_rooty()
+            - 20
+        )
+
+        scroll_quiz_page(max(top, 0) / total)
+
+    except (tk.TclError, AttributeError):
+        pass
+
+
+# ============================================================
+# SAVED RESULTS (SQLite)
+# ============================================================
+
+def get_db():
+
+    conn = sqlite3.connect(DB_FILE)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS quiz_results (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            quiz_title TEXT NOT NULL,
+            score INTEGER NOT NULL,
+            total INTEGER NOT NULL,
+            taken_at TEXT NOT NULL
+        )
+    """)
+
+    return conn
+
+
+def set_quiz_user(username):
+
+    """Called by main.py so results are saved under the right user."""
+
+    global quiz_username
+
+    quiz_username = username.strip() if username else None
+
+
+def player_name():
+
+    return quiz_username or "Guest"
+
+
+def save_quiz_result():
+
+    title = (
+        current_quiz["title"]
+        if isinstance(current_quiz, dict)
+        else "Quiz"
+    )
+
+    try:
+
+        conn = get_db()
+
+        conn.execute(
+            """
+            INSERT INTO quiz_results
+                (username, quiz_title, score, total, taken_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                player_name(),
+                title,
+                quiz_score,
+                len(quiz_questions),
+                datetime.now().strftime("%d %b %Y, %H:%M")
+            )
+        )
+
+        conn.commit()
+        conn.close()
+
+    except Exception as error:
+
+        print("Could not save quiz result:", error)
+
+
+# ============================================================
+# RESULTS + LEADERBOARD PAGES
+# ============================================================
+
+def show_table_page(title, subtitle, headers, rows, empty_text,
+                    widths, highlight_row=None):
+
+    """Simple page with a heading, a table and a Back button."""
+
+    for widget in quiz_content.winfo_children():
+        widget.destroy()
+
+    page = tk.Frame(
+        quiz_content,
+        bg=BG
+    )
+
+    page.pack(
+        fill="both",
+        expand=True,
+        padx=40,
+        pady=25
+    )
+
+    tk.Button(
+        page,
+        text="←  Back to Quizzes",
+        font=("Arial", 10, "bold"),
+        bg=GOLD_LIGHT,
+        fg=BG,
+        relief="flat",
+        padx=18,
+        pady=8,
+        cursor="hand2",
+        command=lambda: show_quiz(quiz_content)
+    ).pack(
+        anchor="w"
+    )
+
+    tk.Label(
+        page,
+        text=title,
+        font=("Georgia", 26, "bold"),
+        bg=BG,
+        fg=GOLD
+    ).pack(
+        anchor="w",
+        pady=(18, 2)
+    )
+
+    tk.Label(
+        page,
+        text=subtitle,
+        font=("Arial", 10),
+        bg=BG,
+        fg=LIGHT_TEXT
+    ).pack(
+        anchor="w",
+        pady=(0, 15)
+    )
+
+    table = tk.Frame(
+        page,
+        bg=CARD,
+        highlightbackground="#76582c",
+        highlightthickness=1
+    )
+
+    table.pack(
+        fill="x"
+    )
+
+    if not rows:
+
+        tk.Label(
+            table,
+            text=empty_text,
+            font=("Georgia", 12, "italic"),
+            bg=CARD,
+            fg=LIGHT_TEXT,
+            pady=40
+        ).pack()
+
+    else:
+
+        for column, header in enumerate(headers):
+
+            tk.Label(
+                table,
+                text=header,
+                font=("Arial", 10, "bold"),
+                bg=CARD_DARK,
+                fg=GOLD,
+                anchor="w",
+                width=widths[column],
+                padx=12,
+                pady=10
+            ).grid(
+                row=0,
+                column=column,
+                sticky="nsew"
+            )
+
+        for row_number, values in enumerate(rows, start=1):
+
+            is_mine = (row_number - 1) == highlight_row
+
+            for column, value in enumerate(values):
+
+                tk.Label(
+                    table,
+                    text=str(value),
+                    font=("Arial", 10, "bold" if is_mine else "normal"),
+                    bg=CARD,
+                    fg=GOLD_LIGHT if is_mine else TEXT,
+                    anchor="w",
+                    width=widths[column],
+                    padx=12,
+                    pady=9
+                ).grid(
+                    row=row_number,
+                    column=column,
+                    sticky="nsew"
+                )
+
+    scroll_quiz_page(0)
+
+
+def show_results_page():
+
+    """Your own past quiz scores."""
+
+    rows = []
+
+    try:
+
+        conn = get_db()
+
+        data = conn.execute(
+            """
+            SELECT quiz_title, score, total, taken_at
+            FROM quiz_results
+            WHERE LOWER(username) = LOWER(?)
+            ORDER BY id DESC
+            LIMIT 50
+            """,
+            (player_name(),)
+        ).fetchall()
+
+        conn.close()
+
+        for quiz_title, score, total, taken_at in data:
+
+            percent = round(score / total * 100) if total else 0
+
+            rows.append((
+                quiz_title,
+                f"{score} / {total}",
+                f"{percent}%",
+                taken_at
+            ))
+
+    except Exception as error:
+
+        print("Could not read results:", error)
+
+    show_table_page(
+        "Your Results",
+        f"Quiz scores for {player_name()}",
+        ["Quiz", "Score", "Percent", "Date"],
+        rows,
+        "No results yet.\nFinish a quiz and your score will appear here.",
+        [34, 10, 10, 20]
+    )
+
+
+def show_leaderboard_page():
+
+    """Best score of every player, highest first."""
+
+    players = {}
+
+    try:
+
+        conn = get_db()
+
+        data = conn.execute(
+            "SELECT username, score, total FROM quiz_results"
+        ).fetchall()
+
+        conn.close()
+
+        for username, score, total in data:
+
+            percent = round(score / total * 100) if total else 0
+
+            entry = players.setdefault(
+                username,
+                {"best": 0, "attempts": 0}
+            )
+
+            entry["best"] = max(entry["best"], percent)
+            entry["attempts"] += 1
+
+    except Exception as error:
+
+        print("Could not read leaderboard:", error)
+
+    ranking = sorted(
+        players.items(),
+        key=lambda item: (-item[1]["best"], item[0].lower())
+    )[:10]
+
+    rows = []
+    highlight = None
+
+    for position, (username, entry) in enumerate(ranking, start=1):
+
+        rows.append((
+            f"#{position}",
+            username,
+            f"{entry['best']}%",
+            entry["attempts"]
+        ))
+
+        if username.lower() == player_name().lower():
+            highlight = position - 1
+
+    show_table_page(
+        "Leaderboard",
+        "Top explorers ranked by their best quiz score",
+        ["Rank", "Player", "Best Score", "Quizzes Taken"],
+        rows,
+        "The leaderboard is empty.\nBe the first to finish a quiz!",
+        [8, 30, 14, 16],
+        highlight_row=highlight
+    )
 
 
 # ============================================================
@@ -2131,6 +2596,8 @@ def show_quiz_result():
 
     global timer_job
 
+    save_quiz_result()
+
     # Stop timer
 
     if timer_job is not None:
@@ -2221,16 +2688,6 @@ def show_quiz_result():
 
 def category_selected(category):
 
-    if category == "All Quizzes":
+    """Show only the quizzes of the chosen category."""
 
-        messagebox.showinfo(
-            "Quizzes",
-            "All quizzes are currently displayed."
-        )
-
-    else:
-
-        messagebox.showinfo(
-            category,
-            "The " + category + " category is selected."
-        )
+    show_quiz(quiz_content, category)

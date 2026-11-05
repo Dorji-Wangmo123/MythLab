@@ -6,12 +6,12 @@ import sys
 
 from PIL import Image, ImageTk, ImageOps
 
-from quiz import show_quiz
+from quiz import show_quiz, set_quiz_user
 from myths import show_myths
 from creatures import show_creatures
 from exploreBhutan import show_regions
 from task import show_tasks
-from mythlab_favorites import MythLabFavourites
+from favorites import MythLabFavourites
 from about import show_about
 
 
@@ -30,7 +30,13 @@ GOLD = "#d6a84f"
 TEXT = "#f5ead0"
 LIGHT_TEXT = "#c7c1b3"
 
+ACTIVE_BG = "#12354a"
+
 image_refs = []
+
+# Navigation state
+current_page = None
+nav_buttons = {}
 
 current_username = (
     sys.argv[1].strip()
@@ -372,10 +378,23 @@ home_canvas.bind(
 )
 
 
+def wheel_direction(event):
+
+    """Return -1 (up) or 1 (down) for Windows, macOS and Linux."""
+
+    if getattr(event, "num", None) == 4:
+        return -1
+
+    if getattr(event, "num", None) == 5:
+        return 1
+
+    return -1 if event.delta > 0 else 1
+
+
 def home_mousewheel(event):
 
     home_canvas.yview_scroll(
-        int(-1 * (event.delta / 120)),
+        wheel_direction(event),
         "units"
     )
 
@@ -476,7 +495,7 @@ quiz_canvas.bind(
 def quiz_mousewheel(event):
 
     quiz_canvas.yview_scroll(
-        int(-1 * (event.delta / 120)),
+        wheel_direction(event),
         "units"
     )
 
@@ -512,7 +531,41 @@ def open_mythlab_page(page):
     open_page(page)
 
 
+def set_active_nav(page):
+
+    """Highlight the sidebar button of the page being shown."""
+
+    for name, button in nav_buttons.items():
+
+        if name == page:
+            button.configure(bg=ACTIVE_BG, fg=GOLD)
+        else:
+            button.configure(bg=SIDEBAR, fg=TEXT)
+
+
 def open_page(page):
+
+    """Navigate to a page and keep the sidebar highlight in sync."""
+
+    global current_page
+
+    shown = _show_page(page)
+
+    if shown is False:
+
+        # Login cancelled or unknown page: go back to where we were.
+        previous = current_page or "Home"
+
+        _show_page(previous)
+        set_active_nav(previous)
+
+        return
+
+    current_page = page
+    set_active_nav(page)
+
+
+def _show_page(page):
 
     global current_username
 
@@ -543,10 +596,9 @@ def open_page(page):
 
         home_canvas.yview_moveto(0)
 
-        root.bind_all(
-            "<MouseWheel>",
-            home_mousewheel
-        )
+        root.bind_all("<MouseWheel>", home_mousewheel)
+        root.bind_all("<Button-4>", home_mousewheel)
+        root.bind_all("<Button-5>", home_mousewheel)
 
 
     # ========================================================
@@ -604,7 +656,7 @@ def open_page(page):
     elif page == "My Tasks":
 
         if not ensure_logged_in_user():
-            return
+            return False
 
         clear_frame(tasks_page)
 
@@ -624,6 +676,8 @@ def open_page(page):
     # ========================================================
 
     elif page == "Quiz":
+
+        set_quiz_user(current_username)
 
         clear_frame(quiz_content)
 
@@ -648,10 +702,9 @@ def open_page(page):
             scrollregion=quiz_canvas.bbox("all")
         )
 
-        root.bind_all(
-            "<MouseWheel>",
-            quiz_mousewheel
-        )
+        root.bind_all("<MouseWheel>", quiz_mousewheel)
+        root.bind_all("<Button-4>", quiz_mousewheel)
+        root.bind_all("<Button-5>", quiz_mousewheel)
 
 
     # ========================================================
@@ -661,7 +714,7 @@ def open_page(page):
     elif page == "Favourites":
 
         if not ensure_logged_in_user():
-            return
+            return False
 
         clear_frame(favourites_page)
 
@@ -709,6 +762,8 @@ def open_page(page):
             page,
             page + " page will be connected next."
         )
+
+        return False
 
 
 # ============================================================
@@ -770,7 +825,7 @@ menu_items = [
 
 for text, page in menu_items:
 
-    tk.Button(
+    nav_button = tk.Button(
         sidebar,
         text=text,
         font=("Arial", 11),
@@ -783,11 +838,15 @@ for text, page in menu_items:
         padx=20,
         pady=10,
         command=lambda p=page: open_page(p)
-    ).pack(
+    )
+
+    nav_button.pack(
         fill="x",
         padx=10,
         pady=2
     )
+
+    nav_buttons[page] = nav_button
 
 
 # ============================================================
@@ -1068,6 +1127,15 @@ category_frame.pack(
 )
 
 
+# Which page each home category card opens.
+CATEGORY_PAGES = {
+    "Gods & Goddesses": "Myths",
+    "Heroes": "Myths",
+    "Creatures": "Creatures",
+    "Folklore": "Myths"
+}
+
+
 categories = [
     (
         "Gods & Goddesses",
@@ -1137,20 +1205,8 @@ for name, description, image_file in categories:
         padx=8
     )
 
-    # Only Creatures currently opens a real page.
-    if name == "Creatures":
-
-        command = lambda: open_page(
-            "Creatures"
-        )
-
-    else:
-
-        # n=name prevents the late-binding lambda problem.
-        command = lambda n=name: messagebox.showinfo(
-            "Category",
-            n + " will be added to the library."
-        )
+    # p=... prevents the late-binding lambda problem.
+    command = lambda p=CATEGORY_PAGES[name]: open_page(p)
 
     tk.Button(
         card,
@@ -1172,10 +1228,7 @@ for name, description, image_file in categories:
 
 def read_myth(name):
 
-    messagebox.showinfo(
-        "Myth",
-        name + "\n\nMore information will be added here."
-    )
+    open_page("Myths")
 
 
 myth_header = tk.Frame(
@@ -1315,10 +1368,7 @@ for name, region, image_file in myths:
 
 def read_creature(name):
 
-    messagebox.showinfo(
-        "Creature",
-        name + "\n\nMore information will be added here."
-    )
+    open_page("Creatures")
 
 
 creature_header = tk.Frame(
@@ -1456,12 +1506,20 @@ for name, creature_type, image_file in creatures:
 # RECENTLY EXPLORED
 # ============================================================
 
+# Which page each "Recently Explored" card opens.
+RECENT_PAGES = {
+    "The Black Mountain": "Myths",
+    "The Legend of Paro Taktsang": "Myths",
+    "The Firebird": "Myths",
+    "The Snake Princess": "Myths",
+    "Mount Jomolhari": "Regions",
+    "The Water Spirit": "Creatures"
+}
+
+
 def recent_item(name):
 
-    messagebox.showinfo(
-        "Recently Explored",
-        "You selected: " + name
-    )
+    open_page(RECENT_PAGES.get(name, "Myths"))
 
 
 recent_header = tk.Frame(

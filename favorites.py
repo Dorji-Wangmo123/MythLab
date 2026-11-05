@@ -1143,6 +1143,49 @@ class MythLabFavourites:
             height=28
         )
 
+        # ====================================================
+        # CLICKABLE CARD
+        # ====================================================
+        # Clicking anywhere on the card opens the matching page.
+        # The ◉ and ♜ buttons keep their own actions.
+
+        def open_item(event=None):
+
+            self.view_item(item)
+
+        def make_clickable(widget):
+
+            if isinstance(widget, tk.Button):
+                return
+
+            widget.bind("<Button-1>", open_item)
+            widget.configure(cursor="hand2")
+
+            for child in widget.winfo_children():
+                make_clickable(child)
+
+        def highlight(event=None):
+
+            card.configure(highlightbackground=GOLD_LIGHT)
+
+        def unhighlight(event=None):
+
+            # Ignore "leaving" when the pointer only moved onto a
+            # child widget of this same card.
+            x, y = card.winfo_pointerxy()
+
+            under_pointer = card.winfo_containing(x, y)
+
+            if under_pointer is not None and str(under_pointer).startswith(str(card)):
+                return
+
+            card.configure(highlightbackground=CARD_BORDER)
+
+        make_clickable(card)
+
+        card.bind("<Enter>", highlight)
+        card.bind("<Leave>", unhighlight)
+
 
     # ========================================================
     # VIEW ITEM
