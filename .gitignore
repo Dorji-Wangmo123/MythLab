@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 @"
+=======
+>>>>>>> origin/main
 __pycache__/
 *.py[cod]
 .venv/
 venv/
+<<<<<<< HEAD
 "@ | Add-Content .gitignore
+=======
+>>>>>>> origin/main
