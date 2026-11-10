@@ -26,7 +26,7 @@ IMAGE_DIR = PROJECT_DIR / "assets"
 # Keep image objects in memory so Tkinter does not remove them.
 image_refs = []
 
-def show_myths(parent):
+def show_myths(parent, open_detail=None):
     """
     Display the Myths page inside the main MythLab window.
 
@@ -188,12 +188,14 @@ def show_myths(parent):
 
     def read_more(name):
 
-        messagebox.showinfo(
-            name,
-            "More information about "
-            + name
-            + " will be added here."
-        )
+        # Open the selected myth inside MythLab's main content area.
+        if open_detail is not None:
+            open_detail(name)
+        else:
+            messagebox.showinfo(
+                name,
+                "The detail page for this myth is not connected yet."
+            )
 
 
     def favourite(name):

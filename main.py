@@ -8,6 +8,8 @@ from PIL import Image, ImageTk, ImageOps
 
 from quiz import show_quiz, set_quiz_user
 from myths import show_myths
+from thunder_dragon import show_thunder_dragon
+from myth_detail import show_myth_detail as show_other_myth_detail
 from creatures import show_creatures
 from exploreBhutan import show_regions
 from task import show_tasks
@@ -408,6 +410,11 @@ myths_page = tk.Frame(
     bg=BG
 )
 
+myth_detail_page = tk.Frame(
+    main_area,
+    bg=BG
+)
+
 creatures_page = tk.Frame(
     main_area,
     bg=BG
@@ -513,6 +520,7 @@ def hide_all_pages():
     quiz_scrollbar.pack_forget()
 
     myths_page.pack_forget()
+    myth_detail_page.pack_forget()
     creatures_page.pack_forget()
     regions_page.pack_forget()
     tasks_page.pack_forget()
@@ -524,6 +532,37 @@ def clear_frame(frame):
 
     for widget in frame.winfo_children():
         widget.destroy()
+
+
+def show_myth_detail(name):
+
+    """Show a myth detail page inside the existing MythLab window."""
+    global current_page
+
+    # Hide the current page but keep the main sidebar visible.
+    hide_all_pages()
+    clear_frame(myth_detail_page)
+
+    myth_detail_page.pack(
+        fill="both",
+        expand=True
+    )
+
+    # Keep the Myths sidebar item highlighted.
+    current_page = "Myths"
+    set_active_nav("Myths")
+
+    if name == "The Thunder Dragon":
+        show_thunder_dragon(
+            myth_detail_page,
+            lambda: open_page("Myths")
+        )
+    else:
+        show_other_myth_detail(
+            myth_detail_page,
+            lambda: open_page("Myths"),
+            name
+        )
 
 
 def open_mythlab_page(page):
@@ -614,7 +653,10 @@ def _show_page(page):
             expand=True
         )
 
-        show_myths(myths_page)
+        show_myths(
+            myths_page,
+            show_myth_detail
+        )
 
 
     # ========================================================
@@ -1688,4 +1730,4 @@ tk.Label(
 
 open_page("Home")
 
-root.mainloop()
+root.mainloop() 
