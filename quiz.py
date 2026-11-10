@@ -1,4 +1,4 @@
-#quiz.py code
+
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
@@ -40,16 +40,10 @@ LEGACY_IMAGE_DIR = PROJECT_DIR / "images"
 
 DB_FILE = PROJECT_DIR / "mythlab.db"
 
-# Keep images in memory
 quiz_image_refs = []
 
-# Category currently chosen with the buttons under the banner
 selected_category = "All Quizzes"
-
-# Name of the logged-in user (set from main.py). None = Guest.
 quiz_username = None
-
-# The grid of quiz cards (used by "View All Quizzes" to scroll to it)
 quiz_grid_widget = None
 
 
@@ -58,20 +52,15 @@ quiz_grid_widget = None
 # ============================================================
 
 quiz_content = None
-
 current_quiz = None
-
 current_question = 0
 
 selected_answers = {}
-
 answered_questions = {}
 
 quiz_score = 0
 
-# 10 minute timer
 time_left = 10 * 60
-
 timer_job = None
 
 
@@ -80,24 +69,17 @@ timer_job = None
 # ============================================================
 
 def find_image(filename):
-    """
-    Find an image inside the images folder
-    or beside quiz.py.
-    """
 
-    # First check images folder
     path = IMAGE_DIR / filename
 
     if path.exists():
         return path
 
-    # Then check beside quiz.py
     path = PROJECT_DIR / filename
 
     if path.exists():
         return path
 
-    # Try similar filenames
     stem = Path(filename).stem.lower()
     extension = Path(filename).suffix.lower()
 
@@ -145,7 +127,6 @@ def load_quiz_image(filename, size):
         )
 
         photo = ImageTk.PhotoImage(image)
-
         quiz_image_refs.append(photo)
 
         return photo
@@ -159,154 +140,742 @@ def load_quiz_image(filename, size):
 
 
 # ============================================================
-# QUIZ QUESTIONS
+# QUESTION SETS
 # ============================================================
 
-quiz_questions = [
+# The original Bhutanese questions are preserved.
+
+bhutanese_questions = [
 
     {
-        "question":
-            "Which of the following is a famous sacred site "
-            "in Bhutan known for its tiger's nest monastery?",
-
+        "question": "Which of the following is a famous sacred site in Bhutan known for its tiger's nest monastery?",
         "options": [
             "Tiger's Nest (Paro Taktsang)",
             "Boudhanath Stupa",
             "Angkor Wat",
             "Mount Fuji"
         ],
-
         "answer": 0
     },
 
     {
-        "question":
-            "What is the national animal of Bhutan?",
-
+        "question": "What is the national animal of Bhutan?",
         "options": [
             "Takin",
             "Yak",
             "Snow Leopard",
             "Red Panda"
         ],
-
         "answer": 0
     },
 
     {
-        "question":
-            "What does the Bhutanese word 'Druk' commonly mean?",
-
+        "question": "What does the Bhutanese word 'Druk' commonly mean?",
         "options": [
             "Thunder Dragon",
             "Mountain Spirit",
             "Snow Lion",
             "Fire Bird"
         ],
-
         "answer": 0
     },
 
     {
-        "question":
-            "What is the capital city of Bhutan?",
-
+        "question": "What is the capital city of Bhutan?",
         "options": [
             "Paro",
             "Punakha",
             "Thimphu",
             "Bumthang"
         ],
-
         "answer": 2
     },
 
     {
-        "question":
-            "How many Dzongkhags are there in Bhutan?",
-
+        "question": "How many Dzongkhags are there in Bhutan?",
         "options": [
             "15",
             "20",
             "25",
             "30"
         ],
-
         "answer": 1
     },
 
     {
-        "question":
-            "Which mythical creature is strongly associated "
-            "with Bhutanese mythology?",
-
+        "question": "Which mythical creature is strongly associated with Bhutanese mythology?",
         "options": [
             "Druk",
             "Phoenix",
             "Minotaur",
             "Kraken"
         ],
-
         "answer": 0
     },
 
     {
-        "question":
-            "Which mountain is considered sacred in Bhutan?",
-
+        "question": "Which mountain is considered sacred in Bhutan?",
         "options": [
             "Mount Everest",
             "Mount Fuji",
             "Mount Jomolhari",
             "K2"
         ],
-
         "answer": 2
     },
 
     {
-        "question":
-            "What is Paro Taktsang also known as?",
-
+        "question": "What is Paro Taktsang also known as?",
         "options": [
             "Tiger's Nest",
             "Dragon's Palace",
             "Golden Temple",
             "Mountain Monastery"
         ],
-
         "answer": 0
     },
 
     {
-        "question":
-            "The Takin is best described as what?",
-
+        "question": "The Takin is best described as what?",
         "options": [
             "A mythical dragon",
             "A large mountain animal",
             "A bird",
             "A river spirit"
         ],
-
         "answer": 1
     },
 
     {
-        "question":
-            "Which two countries border Bhutan?",
-
+        "question": "Which two countries border Bhutan?",
         "options": [
             "India and China",
             "India and Nepal",
             "China and Nepal",
             "India and Tibet"
         ],
-
         "answer": 0
     }
 
 ]
+
+
+# ------------------------------------------------------------
+# MYTHICAL CREATURES QUIZ
+# ------------------------------------------------------------
+
+creature_questions = [
+
+    {
+        "question": "Which legendary creature appears on the national flag of Bhutan?",
+        "options": [
+            "Thunder Dragon (Druk)",
+            "Phoenix",
+            "Unicorn",
+            "Griffin"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is the Yeti commonly described as?",
+        "options": [
+            "A giant sea creature",
+            "A mysterious snow-dwelling being",
+            "A fire-breathing bird",
+            "A forest fairy"
+        ],
+        "answer": 1
+    },
+
+    {
+        "question": "Which mythical creature is often associated with wisdom and protection in Himalayan traditions?",
+        "options": [
+            "Dragon",
+            "Minotaur",
+            "Kraken",
+            "Cyclops"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is a Naga commonly represented as in South Asian traditions?",
+        "options": [
+            "A serpent or serpent-like being",
+            "A giant eagle",
+            "A horse with wings",
+            "A forest giant"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which creature is traditionally known as a symbol of purity and strength in Himalayan art?",
+        "options": [
+            "Snow Lion",
+            "Werewolf",
+            "Mermaid",
+            "Goblin"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "The Phoenix is traditionally associated with which ability?",
+        "options": [
+            "Living underwater",
+            "Rising again from its ashes",
+            "Turning invisible",
+            "Controlling earthquakes"
+        ],
+        "answer": 1
+    },
+
+    {
+        "question": "The Firebird is a legendary creature most closely associated with which folklore tradition?",
+        "options": [
+            "Slavic folklore",
+            "Bhutanese folklore",
+            "Japanese folklore",
+            "Greek folklore"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which of these is a real animal rather than a mythical creature?",
+        "options": [
+            "Dragon",
+            "Phoenix",
+            "Takin",
+            "Griffin"
+        ],
+        "answer": 2
+    },
+
+    {
+        "question": "Kurma, the giant tortoise, is associated with which mythology?",
+        "options": [
+            "Hindu mythology",
+            "Norse mythology",
+            "Greek mythology",
+            "Egyptian mythology"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Rangda is a supernatural figure from which cultural tradition?",
+        "options": [
+            "Balinese tradition",
+            "Bhutanese tradition",
+            "Norse tradition",
+            "Egyptian tradition"
+        ],
+        "answer": 0
+    }
+
+]
+
+
+# ------------------------------------------------------------
+# BHUTAN DZONGKHAGS QUIZ
+# ------------------------------------------------------------
+
+region_questions = [
+
+    {
+        "question": "How many Dzongkhags (districts) are there in Bhutan?",
+        "options": [
+            "15",
+            "18",
+            "20",
+            "25"
+        ],
+        "answer": 2
+    },
+
+    {
+        "question": "Which Dzongkhag is the capital of Bhutan located in?",
+        "options": [
+            "Paro",
+            "Thimphu",
+            "Punakha",
+            "Wangdue Phodrang"
+        ],
+        "answer": 1
+    },
+
+    {
+        "question": "Paro Taktsang, also known as Tiger's Nest, is located in which Dzongkhag?",
+        "options": [
+            "Paro",
+            "Haa",
+            "Bumthang",
+            "Trongsa"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Punakha Dzong is located at the meeting point of which two rivers?",
+        "options": [
+            "Mo Chhu and Pho Chhu",
+            "Wang Chhu and Paro Chhu",
+            "Mangde Chhu and Chamkhar Chhu",
+            "Kuri Chhu and Drangme Chhu"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which Dzongkhag is often called the spiritual heartland of Bhutan?",
+        "options": [
+            "Bumthang",
+            "Samtse",
+            "Chukha",
+            "Sarpang"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Trongsa Dzong is especially important because it historically controlled which route?",
+        "options": [
+            "A major east-west route through Bhutan",
+            "A sea route to India",
+            "A route to Tibet through Paro",
+            "A route to Nepal"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which Dzongkhag is located in the northwestern part of Bhutan and is known for its beautiful valley?",
+        "options": [
+            "Haa",
+            "Pemagatshel",
+            "Zhemgang",
+            "Samtse"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which Dzongkhag is known for its remote mountain communities and Gasa Dzong?",
+        "options": [
+            "Gasa",
+            "Tsirang",
+            "Dagana",
+            "Sarpang"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which Dzongkhag is home to the famous Punakha Dzong?",
+        "options": [
+            "Punakha",
+            "Thimphu",
+            "Mongar",
+            "Lhuentse"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which country lies to the south of Bhutan?",
+        "options": [
+            "India",
+            "China",
+            "Nepal",
+            "Bangladesh"
+        ],
+        "answer": 0
+    }
+
+]
+
+
+# ------------------------------------------------------------
+# MYTHOLOGY BASICS
+# ------------------------------------------------------------
+
+basics_questions = [
+
+    {
+        "question": "What is mythology?",
+        "options": [
+            "A collection of traditional stories about gods, heroes and supernatural events",
+            "A list of scientific experiments",
+            "A modern news report",
+            "A type of mathematics"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is a legend?",
+        "options": [
+            "A traditional story often connected with people or places",
+            "A computer program",
+            "A scientific formula",
+            "A weather forecast"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is folklore?",
+        "options": [
+            "Traditional beliefs, stories and customs shared by a community",
+            "A type of machine",
+            "A modern business plan",
+            "A mathematical theory"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is a creation myth usually about?",
+        "options": [
+            "How the world or universe began",
+            "How computers are made",
+            "How mountains are measured",
+            "How people build houses"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which of these is commonly found in mythology?",
+        "options": [
+            "Gods and goddesses",
+            "Only modern machines",
+            "Only scientific tools",
+            "Computer passwords"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is a hero usually known for in traditional stories?",
+        "options": [
+            "Courage and important deeds",
+            "Avoiding every challenge",
+            "Destroying every tradition",
+            "Never helping others"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Why are myths and legends passed from one generation to another?",
+        "options": [
+            "To preserve culture, beliefs and values",
+            "To replace all history books",
+            "To teach computer programming",
+            "To explain modern technology"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is a symbol in mythology?",
+        "options": [
+            "An image or object that represents an idea",
+            "A type of building material",
+            "A modern vehicle",
+            "A musical instrument only"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which of the following is an example of an oral tradition?",
+        "options": [
+            "Stories told by elders to younger generations",
+            "A computer file saved on a hard drive",
+            "A printed shopping receipt",
+            "A television remote control"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Why should we learn about mythology from different cultures?",
+        "options": [
+            "To understand different cultures and traditions",
+            "To prove that all cultures are identical",
+            "To forget local traditions",
+            "To replace cultural history"
+        ],
+        "answer": 0
+    }
+
+]
+
+
+# ------------------------------------------------------------
+# LEGENDS & CREATURES QUIZ
+# ------------------------------------------------------------
+
+mixed_questions = [
+
+    {
+        "question": "Which legendary creature is strongly connected with Bhutan's national identity?",
+        "options": [
+            "Druk",
+            "Minotaur",
+            "Kraken",
+            "Unicorn"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "The Yeti is traditionally associated with which environment?",
+        "options": [
+            "Himalayan mountains",
+            "Desert dunes",
+            "Tropical beaches",
+            "Deep oceans"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which Greek mythological creature has the body of a lion and the head and wings of an eagle?",
+        "options": [
+            "Griffin",
+            "Naga",
+            "Phoenix",
+            "Yeti"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which legendary bird is known for being reborn from its ashes?",
+        "options": [
+            "Phoenix",
+            "Griffin",
+            "Roc",
+            "Garuda"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which Bhutanese site is associated with Guru Rinpoche's meditation?",
+        "options": [
+            "Paro Taktsang",
+            "Punakha Dzong",
+            "Trongsa Dzong",
+            "Tashichho Dzong"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "In Greek mythology, who is the king of the gods?",
+        "options": [
+            "Zeus",
+            "Apollo",
+            "Hermes",
+            "Ares"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which creature is commonly described as half-human and half-fish?",
+        "options": [
+            "Mermaid",
+            "Griffin",
+            "Centaur",
+            "Minotaur"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which legendary creature is traditionally associated with the sea and enormous tentacles?",
+        "options": [
+            "Kraken",
+            "Phoenix",
+            "Snow Lion",
+            "Unicorn"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is the Takin?",
+        "options": [
+            "Bhutan's national animal",
+            "A mythical sea monster",
+            "A legendary bird",
+            "A Greek god"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is one important purpose of traditional legends?",
+        "options": [
+            "To share cultural beliefs and lessons",
+            "To provide exact scientific measurements",
+            "To replace every form of education",
+            "To describe only modern inventions"
+        ],
+        "answer": 0
+    }
+
+]
+
+
+# ------------------------------------------------------------
+# ULTIMATE MYTHOLOGY CHALLENGE
+# ------------------------------------------------------------
+
+challenge_questions = [
+
+    {
+        "question": "What is the name commonly used for Bhutan's Thunder Dragon?",
+        "options": [
+            "Druk",
+            "Garuda",
+            "Naga",
+            "Roc"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "In Hindu mythology, which deity is associated with the preservation of the universe?",
+        "options": [
+            "Vishnu",
+            "Agni",
+            "Indra",
+            "Yama"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which Greek hero is famous for completing twelve labours?",
+        "options": [
+            "Heracles",
+            "Achilles",
+            "Odysseus",
+            "Perseus"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "In Norse mythology, what is the name of the world tree connecting the nine worlds?",
+        "options": [
+            "Yggdrasil",
+            "Asgard",
+            "Midgard",
+            "Valhalla"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which Hindu mythological figure is known as the half-man, half-lion avatar of Vishnu?",
+        "options": [
+            "Narasimha",
+            "Hanuman",
+            "Garuda",
+            "Ganesha"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which creature in Greek mythology guarded the entrance to the Underworld?",
+        "options": [
+            "Cerberus",
+            "Pegasus",
+            "Chimera",
+            "Hydra"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "In Egyptian mythology, which god is commonly associated with the afterlife and mummification?",
+        "options": [
+            "Anubis",
+            "Ra",
+            "Horus",
+            "Thoth"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which legendary bird is associated with the Hindu deity Vishnu as his mount?",
+        "options": [
+            "Garuda",
+            "Phoenix",
+            "Roc",
+            "Griffin"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "What is the main purpose of comparing myths from different cultures?",
+        "options": [
+            "To understand similarities and differences between traditions",
+            "To prove that one culture is superior",
+            "To remove local cultural beliefs",
+            "To show that all stories are historically identical"
+        ],
+        "answer": 0
+    },
+
+    {
+        "question": "Which term describes a traditional story that explains a natural event or cultural belief?",
+        "options": [
+            "Myth",
+            "Invoice",
+            "Algorithm",
+            "Biography"
+        ],
+        "answer": 0
+    }
+
+]
+
+
+# Connect each quiz title to its own question list.
+
+QUIZ_QUESTION_SETS = {
+
+    "Bhutanese Mythology Quiz": bhutanese_questions,
+
+    "Mythical Creatures Quiz": creature_questions,
+
+    "Bhutan Dzongkhags Quiz": region_questions,
+
+    "Mythology Basics": basics_questions,
+
+    "Legends & Creatures": mixed_questions,
+
+    "The Ultimate Mythology Challenge": challenge_questions
+
+}
+
+
+# Keep the original variable name for the rest of the quiz functions.
+quiz_questions = bhutanese_questions
 
 
 # ============================================================
@@ -323,7 +892,6 @@ def show_quiz(content, category_filter="All Quizzes"):
     quiz_content = content
     selected_category = category_filter
 
-    # Stop timer if returning from a quiz
     if timer_job is not None:
 
         try:
@@ -333,16 +901,12 @@ def show_quiz(content, category_filter="All Quizzes"):
 
         timer_job = None
 
-    # Clear current page
     for widget in content.winfo_children():
         widget.destroy()
 
-    # Clear old images
     quiz_image_refs.clear()
 
-    # ========================================================
     # BANNER
-    # ========================================================
 
     banner = tk.Frame(
         content,
@@ -377,23 +941,51 @@ def show_quiz(content, category_filter="All Quizzes"):
             relheight=1
         )
 
-    # Text directly over the banner image
-    if banner_image:
         banner_canvas = tk.Canvas(
             banner,
             bg=BG,
             highlightthickness=0,
             bd=0
         )
-        banner_canvas.place(x=0, y=0, relwidth=1, relheight=1)
-        banner_canvas.create_image(0, 0, image=banner_image, anchor="nw")
-        banner_canvas.create_text(35, 58, text="?", anchor="w", font=("Georgia", 30, "bold"), fill=GOLD_LIGHT)
-        banner_canvas.create_text(85, 50, text="Quiz", anchor="w", font=("Georgia", 31, "bold"), fill=TEXT)
-        banner_canvas.create_text(85, 95, text="Test your knowledge of myths, legends and mythical creatures\nfrom Bhutan and beyond!", anchor="w", font=("Arial", 10), fill=WHITE)
 
-    # ========================================================
+        banner_canvas.place(
+            x=0,
+            y=0,
+            relwidth=1,
+            relheight=1
+        )
+
+        banner_canvas.create_image(
+            0, 0,
+            image=banner_image,
+            anchor="nw"
+        )
+
+        banner_canvas.create_text(
+            35, 58,
+            text="?",
+            anchor="w",
+            font=("Georgia", 30, "bold"),
+            fill=GOLD_LIGHT
+        )
+
+        banner_canvas.create_text(
+            85, 50,
+            text="Quiz",
+            anchor="w",
+            font=("Georgia", 31, "bold"),
+            fill=TEXT
+        )
+
+        banner_canvas.create_text(
+            85, 95,
+            text="Test your knowledge of myths, legends and mythical creatures\nfrom Bhutan and beyond!",
+            anchor="w",
+            font=("Arial", 10),
+            fill=WHITE
+        )
+
     # CATEGORY BUTTONS
-    # ========================================================
 
     category_bar = tk.Frame(
         content,
@@ -411,18 +1003,17 @@ def show_quiz(content, category_filter="All Quizzes"):
         "Myths",
         "Creatures",
         "Regions",
-        "General Knowledge"
+        "General Knowledge",
+        "Mixed",
+        "Challenge"
     ]
 
-    for index, category in enumerate(categories):
+    for category in categories:
 
         if category == selected_category:
-
             button_bg = GOLD
             button_fg = BG
-
         else:
-
             button_bg = BG
             button_fg = TEXT
 
@@ -445,9 +1036,7 @@ def show_quiz(content, category_filter="All Quizzes"):
             padx=(0, 8)
         )
 
-    # ========================================================
     # BODY
-    # ========================================================
 
     body = tk.Frame(
         content,
@@ -459,13 +1048,11 @@ def show_quiz(content, category_filter="All Quizzes"):
         padx=25
     )
 
-    # Left
     left = tk.Frame(
         body,
         bg=BG
     )
 
-    # Right
     right = tk.Frame(
         body,
         bg=BG,
@@ -479,8 +1066,6 @@ def show_quiz(content, category_filter="All Quizzes"):
 
     right.pack_propagate(False)
 
-    # The right panel is packed before the left one so it keeps its
-    # full width. The left side takes whatever space is left.
     left.pack(
         side="left",
         fill="both",
@@ -488,9 +1073,7 @@ def show_quiz(content, category_filter="All Quizzes"):
         padx=(0, 12)
     )
 
-    # ========================================================
     # AVAILABLE QUIZZES TITLE
-    # ========================================================
 
     heading = tk.Frame(
         left,
@@ -534,9 +1117,7 @@ def show_quiz(content, category_filter="All Quizzes"):
         padx=(15, 0)
     )
 
-    # ========================================================
     # QUIZ GRID
-    # ========================================================
 
     quiz_grid = tk.Frame(
         left,
@@ -554,9 +1135,7 @@ def show_quiz(content, category_filter="All Quizzes"):
         {
             "category": "Myths",
             "title": "Bhutanese Mythology Quiz",
-            "description":
-                "Test your knowledge about famous\n"
-                "myths and legends from Bhutan.",
+            "description": "Test your knowledge about famous\nmyths and legends from Bhutan.",
             "questions": "10 Questions",
             "difficulty": "Medium",
             "image": "thunder_dragon.png"
@@ -565,9 +1144,7 @@ def show_quiz(content, category_filter="All Quizzes"):
         {
             "category": "Creatures",
             "title": "Mythical Creatures Quiz",
-            "description":
-                "How well do you know Bhutan's\n"
-                "mythical creatures and their powers?",
+            "description": "How well do you know Bhutan's\nmythical creatures and their powers?",
             "questions": "10 Questions",
             "difficulty": "Medium",
             "image": "druk (3).png"
@@ -576,9 +1153,7 @@ def show_quiz(content, category_filter="All Quizzes"):
         {
             "category": "Regions",
             "title": "Bhutan Dzongkhags Quiz",
-            "description":
-                "Explore and test your knowledge\n"
-                "of Bhutan's 20 Dzongkhags and legends.",
+            "description": "Explore and test your knowledge\nof Bhutan's 20 Dzongkhags and legends.",
             "questions": "10 Questions",
             "difficulty": "Easy",
             "image": "paro_taktsang.png"
@@ -587,9 +1162,7 @@ def show_quiz(content, category_filter="All Quizzes"):
         {
             "category": "General Knowledge",
             "title": "Mythology Basics",
-            "description":
-                "A quick quiz to check your general\n"
-                "knowledge about myths and folklore.",
+            "description": "A quick quiz to check your general\nknowledge about myths and folklore.",
             "questions": "10 Questions",
             "difficulty": "Easy",
             "image": "recent_firebird.png"
@@ -598,9 +1171,7 @@ def show_quiz(content, category_filter="All Quizzes"):
         {
             "category": "Mixed",
             "title": "Legends & Creatures",
-            "description":
-                "A mix of myths, creatures and\n"
-                "interesting facts from across regions.",
+            "description": "A mix of myths, creatures and\ninteresting facts from across regions.",
             "questions": "10 Questions",
             "difficulty": "Medium",
             "image": "yeti.png"
@@ -609,9 +1180,7 @@ def show_quiz(content, category_filter="All Quizzes"):
         {
             "category": "Challenge",
             "title": "The Ultimate Mythology Challenge",
-            "description":
-                "Are you a true MythLab explorer?\n"
-                "Take this advanced quiz!",
+            "description": "Are you a true MythLab explorer?\nTake this advanced quiz!",
             "questions": "10 Questions",
             "difficulty": "Hard",
             "image": "firebird (1).png"
@@ -656,17 +1225,9 @@ def show_quiz(content, category_filter="All Quizzes"):
             weight=1
         )
 
-    # ========================================================
-    # RIGHT SIDE
-    # ========================================================
-
     create_selection_progress(right)
-
     create_quick_links(right)
-
     create_selection_quote(right)
-
-    # Bottom spacing
 
     tk.Frame(
         content,
@@ -695,10 +1256,6 @@ def create_quiz_card(parent, quiz, row, column):
         padx=5,
         pady=5
     )
-
-    # --------------------------------------------------------
-    # Image
-    # --------------------------------------------------------
 
     image = load_quiz_image(
         quiz["image"],
@@ -732,10 +1289,6 @@ def create_quiz_card(parent, quiz, row, column):
             pady=5
         )
 
-    # --------------------------------------------------------
-    # Category
-    # --------------------------------------------------------
-
     tk.Label(
         card,
         text="  " + quiz["category"] + "  ",
@@ -746,10 +1299,6 @@ def create_quiz_card(parent, quiz, row, column):
         anchor="w",
         padx=8
     )
-
-    # --------------------------------------------------------
-    # Title
-    # --------------------------------------------------------
 
     title_label = tk.Label(
         card,
@@ -767,10 +1316,6 @@ def create_quiz_card(parent, quiz, row, column):
         pady=(7, 2)
     )
 
-    # --------------------------------------------------------
-    # Description
-    # --------------------------------------------------------
-
     description_label = tk.Label(
         card,
         text=quiz["description"],
@@ -786,7 +1331,6 @@ def create_quiz_card(parent, quiz, row, column):
         padx=10
     )
 
-    # Keep the text inside the card when the window is resized.
     def fit_text(event):
 
         width = max(event.width - 30, 100)
@@ -795,10 +1339,6 @@ def create_quiz_card(parent, quiz, row, column):
         description_label.configure(wraplength=width)
 
     card.bind("<Configure>", fit_text)
-
-    # --------------------------------------------------------
-    # Info
-    # --------------------------------------------------------
 
     info = tk.Frame(
         card,
@@ -824,17 +1364,12 @@ def create_quiz_card(parent, quiz, row, column):
     difficulty = quiz["difficulty"]
 
     if difficulty == "Easy":
-
         difficulty_bg = "#164a34"
         difficulty_fg = GREEN
-
     elif difficulty == "Hard":
-
         difficulty_bg = "#54212b"
         difficulty_fg = RED
-
     else:
-
         difficulty_bg = "#4b411c"
         difficulty_fg = GOLD_LIGHT
 
@@ -847,10 +1382,6 @@ def create_quiz_card(parent, quiz, row, column):
     ).pack(
         side="right"
     )
-
-    # --------------------------------------------------------
-    # START BUTTON
-    # --------------------------------------------------------
 
     tk.Button(
         card,
@@ -922,24 +1453,14 @@ def create_selection_progress(parent):
         side="left"
     )
 
-    # Circle
-
     donut.create_oval(
-        12,
-        12,
-        93,
-        93,
+        12, 12, 93, 93,
         outline="#284b63",
         width=11
     )
 
-    # Completed section
-
     donut.create_arc(
-        12,
-        12,
-        93,
-        93,
+        12, 12, 93, 93,
         start=90,
         extent=-180,
         style="arc",
@@ -948,16 +1469,14 @@ def create_selection_progress(parent):
     )
 
     donut.create_text(
-        52,
-        43,
+        52, 43,
         text="3/6",
         font=("Arial", 13, "bold"),
         fill=TEXT
     )
 
     donut.create_text(
-        52,
-        62,
+        52, 62,
         text="Completed",
         font=("Arial", 7),
         fill=LIGHT_TEXT
@@ -974,26 +1493,9 @@ def create_selection_progress(parent):
         expand=True
     )
 
-    selection_legend(
-        legend,
-        GREEN,
-        "Completed",
-        "3"
-    )
-
-    selection_legend(
-        legend,
-        BLUE,
-        "In Progress",
-        "1"
-    )
-
-    selection_legend(
-        legend,
-        GREY,
-        "Not Started",
-        "2"
-    )
+    selection_legend(legend, GREEN, "Completed", "3")
+    selection_legend(legend, BLUE, "In Progress", "1")
+    selection_legend(legend, GREY, "Not Started", "2")
 
     tk.Label(
         frame,
@@ -1024,9 +1526,7 @@ def selection_legend(parent, colour, name, number):
         font=("Arial", 10),
         bg=CARD,
         fg=colour
-    ).pack(
-        side="left"
-    )
+    ).pack(side="left")
 
     tk.Label(
         row,
@@ -1045,9 +1545,7 @@ def selection_legend(parent, colour, name, number):
         font=("Arial", 8),
         bg=CARD,
         fg=TEXT
-    ).pack(
-        side="right"
-    )
+    ).pack(side="right")
 
 
 # ============================================================
@@ -1081,24 +1579,9 @@ def create_quick_links(parent):
     )
 
     links = [
-        (
-            "▣",
-            "View All Quizzes",
-            "Browse all available quizzes",
-            view_all_quizzes
-        ),
-        (
-            "▤",
-            "Your Results",
-            "Check your past quiz scores",
-            show_results_page
-        ),
-        (
-            "♜",
-            "Leaderboard",
-            "See how you rank",
-            show_leaderboard_page
-        )
+        ("▣", "View All Quizzes", "Browse all available quizzes", view_all_quizzes),
+        ("▤", "Your Results", "Check your past quiz scores", show_results_page),
+        ("♜", "Leaderboard", "See how you rank", show_leaderboard_page)
     ]
 
     for icon, title, description, link_command in links:
@@ -1142,9 +1625,7 @@ def create_quick_links(parent):
             font=("Arial", 9),
             bg=CARD,
             fg=TEXT
-        ).pack(
-            anchor="w"
-        )
+        ).pack(anchor="w")
 
         tk.Label(
             text_frame,
@@ -1152,9 +1633,7 @@ def create_quick_links(parent):
             font=("Arial", 7),
             bg=CARD,
             fg=LIGHT_TEXT
-        ).pack(
-            anchor="w"
-        )
+        ).pack(anchor="w")
 
         tk.Label(
             row,
@@ -1162,9 +1641,7 @@ def create_quick_links(parent):
             font=("Arial", 20),
             bg=CARD,
             fg=GOLD
-        ).pack(
-            side="right"
-        )
+        ).pack(side="right")
 
         make_clickable(row, link_command)
 
@@ -1184,8 +1661,6 @@ def create_quick_links(parent):
 # ============================================================
 
 def make_clickable(row, command):
-
-    """Make a whole row (and everything inside it) clickable."""
 
     def set_background(widget, colour):
 
@@ -1224,8 +1699,6 @@ def make_clickable(row, command):
 
 def scroll_quiz_page(fraction=0.0):
 
-    """Scroll the quiz page (it lives inside a canvas in main.py)."""
-
     try:
 
         quiz_content.update_idletasks()
@@ -1240,8 +1713,6 @@ def scroll_quiz_page(fraction=0.0):
 
 
 def view_all_quizzes():
-
-    """Show the full quiz list and scroll down to the quiz cards."""
 
     show_quiz(quiz_content)
 
@@ -1286,8 +1757,6 @@ def get_db():
 
 
 def set_quiz_user(username):
-
-    """Called by main.py so results are saved under the right user."""
 
     global quiz_username
 
@@ -1341,8 +1810,6 @@ def save_quiz_result():
 def show_table_page(title, subtitle, headers, rows, empty_text,
                     widths, highlight_row=None):
 
-    """Simple page with a heading, a table and a Back button."""
-
     for widget in quiz_content.winfo_children():
         widget.destroy()
 
@@ -1369,9 +1836,7 @@ def show_table_page(title, subtitle, headers, rows, empty_text,
         pady=8,
         cursor="hand2",
         command=lambda: show_quiz(quiz_content)
-    ).pack(
-        anchor="w"
-    )
+    ).pack(anchor="w")
 
     tk.Label(
         page,
@@ -1402,9 +1867,7 @@ def show_table_page(title, subtitle, headers, rows, empty_text,
         highlightthickness=1
     )
 
-    table.pack(
-        fill="x"
-    )
+    table.pack(fill="x")
 
     if not rows:
 
@@ -1464,8 +1927,6 @@ def show_table_page(title, subtitle, headers, rows, empty_text,
 
 def show_results_page():
 
-    """Your own past quiz scores."""
-
     rows = []
 
     try:
@@ -1511,8 +1972,6 @@ def show_results_page():
 
 
 def show_leaderboard_page():
-
-    """Best score of every player, highest first."""
 
     players = {}
 
@@ -1586,9 +2045,7 @@ def create_selection_quote(parent):
         highlightthickness=1
     )
 
-    frame.pack(
-        fill="x"
-    )
+    frame.pack(fill="x")
 
     image = load_quiz_image(
         "quiz_quote.png",
@@ -1614,9 +2071,7 @@ def create_selection_quote(parent):
         bg=CARD,
         fg=GOLD_LIGHT,
         justify="center"
-    ).pack(
-        pady=(5, 15)
-    )
+    ).pack(pady=(5, 15))
 
 
 # ============================================================
@@ -1632,20 +2087,24 @@ def start_quiz(quiz):
     global quiz_score
     global time_left
     global timer_job
+    global quiz_questions
 
     current_quiz = quiz
+
+    # IMPORTANT: Load the question set belonging to this card.
+    quiz_questions = QUIZ_QUESTION_SETS.get(
+        quiz["title"],
+        bhutanese_questions
+    )
 
     current_question = 0
 
     selected_answers = {}
-
     answered_questions = {}
 
     quiz_score = 0
-
     time_left = 10 * 60
 
-    # Stop old timer
     if timer_job is not None:
 
         try:
@@ -1655,14 +2114,11 @@ def start_quiz(quiz):
 
         timer_job = None
 
-    # Clear page
     for widget in quiz_content.winfo_children():
         widget.destroy()
 
-    # Show question page
     build_question_page()
 
-    # Start timer
     update_timer()
 
 
@@ -1682,9 +2138,7 @@ def build_question_page():
         expand=True
     )
 
-    # ========================================================
     # BANNER
-    # ========================================================
 
     banner = tk.Frame(
         page,
@@ -1718,23 +2172,51 @@ def build_question_page():
             relheight=1
         )
 
-    # Text directly over the banner image
-    if banner_image:
         banner_canvas = tk.Canvas(
             banner,
             bg=BG,
             highlightthickness=0,
             bd=0
         )
-        banner_canvas.place(x=0, y=0, relwidth=1, relheight=1)
-        banner_canvas.create_image(0, 0, image=banner_image, anchor="nw")
-        banner_canvas.create_text(35, 62, text="♢", anchor="w", font=("Arial", 38), fill=GOLD)
-        banner_canvas.create_text(95, 52, text="Quiz", anchor="w", font=("Georgia", 32, "bold"), fill=TEXT)
-        banner_canvas.create_text(95, 98, text="Challenge yourself with myths, legends and mythical creatures\nfrom Bhutan and around the world!", anchor="w", font=("Arial", 10), fill=WHITE)
 
-    # ========================================================
+        banner_canvas.place(
+            x=0,
+            y=0,
+            relwidth=1,
+            relheight=1
+        )
+
+        banner_canvas.create_image(
+            0, 0,
+            image=banner_image,
+            anchor="nw"
+        )
+
+        banner_canvas.create_text(
+            35, 62,
+            text="♢",
+            anchor="w",
+            font=("Arial", 38),
+            fill=GOLD
+        )
+
+        banner_canvas.create_text(
+            95, 52,
+            text="Quiz",
+            anchor="w",
+            font=("Georgia", 32, "bold"),
+            fill=TEXT
+        )
+
+        banner_canvas.create_text(
+            95, 98,
+            text="Challenge yourself with myths, legends and mythical creatures\nfrom Bhutan and around the world!",
+            anchor="w",
+            font=("Arial", 10),
+            fill=WHITE
+        )
+
     # BODY
-    # ========================================================
 
     body = tk.Frame(
         page,
@@ -1747,9 +2229,7 @@ def build_question_page():
         pady=(8, 0)
     )
 
-    # ========================================================
     # QUESTION AREA
-    # ========================================================
 
     question_area = tk.Frame(
         body,
@@ -1765,9 +2245,7 @@ def build_question_page():
         padx=(0, 12)
     )
 
-    # ========================================================
     # SIDE PANEL
-    # ========================================================
 
     side_panel = tk.Frame(
         body,
@@ -1782,9 +2260,7 @@ def build_question_page():
 
     side_panel.pack_propagate(False)
 
-    # ========================================================
     # QUESTION HEADER
-    # ========================================================
 
     question_header = tk.Frame(
         question_area,
@@ -1803,9 +2279,7 @@ def build_question_page():
         font=("Arial", 11),
         bg=BG,
         fg=TEXT
-    ).pack(
-        side="left"
-    )
+    ).pack(side="left")
 
     category = current_quiz["category"]
 
@@ -1815,13 +2289,9 @@ def build_question_page():
         font=("Arial", 10),
         bg=BG,
         fg=TEXT
-    ).pack(
-        side="right"
-    )
+    ).pack(side="right")
 
-    # ========================================================
     # PROGRESS BAR
-    # ========================================================
 
     progress_background = tk.Frame(
         question_area,
@@ -1851,9 +2321,7 @@ def build_question_page():
         relheight=1
     )
 
-    # ========================================================
     # QUESTION
-    # ========================================================
 
     question_text = quiz_questions[current_question]["question"]
 
@@ -1871,9 +2339,7 @@ def build_question_page():
         pady=(30, 25)
     )
 
-    # ========================================================
     # ANSWERS
-    # ========================================================
 
     options = quiz_questions[current_question]["options"]
 
@@ -1895,9 +2361,7 @@ def build_question_page():
             option
         )
 
-    # ========================================================
     # NAVIGATION
-    # ========================================================
 
     navigation = tk.Frame(
         question_area,
@@ -1923,9 +2387,7 @@ def build_question_page():
         padx=25,
         pady=8,
         command=previous_question
-    ).pack(
-        side="left"
-    )
+    ).pack(side="left")
 
     tk.Button(
         navigation,
@@ -1939,20 +2401,11 @@ def build_question_page():
         padx=30,
         pady=9,
         command=next_question
-    ).pack(
-        side="right"
-    )
-
-    # ========================================================
-    # RIGHT SIDE PANELS
-    # ========================================================
+    ).pack(side="right")
 
     create_question_progress(side_panel)
-
     create_time_panel(side_panel)
-
     create_question_overview(side_panel)
-
     create_quiz_quote(side_panel)
 
 
@@ -1962,18 +2415,13 @@ def build_question_page():
 
 def create_answer_button(parent, index, option):
 
-    selected = selected_answers.get(
-        current_question
-    )
+    selected = selected_answers.get(current_question)
 
     if selected == index:
-
         background = "#1d2d2f"
         border = "#f2bd5b"
         circle = "●"
-
     else:
-
         background = "#0b2638"
         border = "#41637a"
         circle = "○"
@@ -1991,8 +2439,6 @@ def create_answer_button(parent, index, option):
         pady=7
     )
 
-    # Circle
-
     circle_label = tk.Label(
         answer,
         text=circle,
@@ -2006,8 +2452,6 @@ def create_answer_button(parent, index, option):
         padx=(18, 12),
         pady=8
     )
-
-    # A/B/C/D
 
     letter = chr(65 + index)
 
@@ -2024,8 +2468,6 @@ def create_answer_button(parent, index, option):
         padx=(0, 12)
     )
 
-    # Text
-
     option_label = tk.Label(
         answer,
         text=option,
@@ -2039,8 +2481,6 @@ def create_answer_button(parent, index, option):
         side="left",
         pady=12
     )
-
-    # Click entire answer
 
     answer.bind(
         "<Button-1>",
@@ -2095,7 +2535,6 @@ def next_question():
     global current_question
     global quiz_score
 
-    # No answer selected
     if current_question not in selected_answers:
 
         messagebox.showwarning(
@@ -2105,24 +2544,22 @@ def next_question():
 
         return
 
-    # Check only once
-    if current_question not in answered_questions:
+    # Recalculate the current answer so changing an earlier
+    # answer does not leave an outdated score.
 
-        selected = selected_answers[current_question]
+    selected = selected_answers[current_question]
+    correct = quiz_questions[current_question]["answer"]
 
-        correct = quiz_questions[current_question]["answer"]
+    if selected == correct:
+        answered_questions[current_question] = "correct"
+    else:
+        answered_questions[current_question] = "incorrect"
 
-        if selected == correct:
-
-            quiz_score += 1
-
-            answered_questions[current_question] = "correct"
-
-        else:
-
-            answered_questions[current_question] = "incorrect"
-
-    # Move forward
+    quiz_score = sum(
+        1
+        for question_number, answer_index in selected_answers.items()
+        if answer_index == quiz_questions[question_number]["answer"]
+    )
 
     if current_question < len(quiz_questions) - 1:
 
@@ -2198,12 +2635,9 @@ def create_question_progress(parent):
         highlightthickness=0
     )
 
-    canvas.pack(
-        side="left"
-    )
+    canvas.pack(side="left")
 
     total = len(quiz_questions)
-
     completed = len(answered_questions)
 
     correct = sum(
@@ -2218,30 +2652,18 @@ def create_question_progress(parent):
         if result == "incorrect"
     )
 
-    # Background circle
-
     canvas.create_oval(
-        12,
-        12,
-        93,
-        93,
+        12, 12, 93, 93,
         outline="#294c65",
         width=11
     )
 
-    # Completed arc
-
     if total > 0:
 
-        angle = (
-            completed / total
-        ) * 360
+        angle = (completed / total) * 360
 
         canvas.create_arc(
-            12,
-            12,
-            93,
-            93,
+            12, 12, 93, 93,
             start=90,
             extent=-angle,
             style="arc",
@@ -2250,16 +2672,14 @@ def create_question_progress(parent):
         )
 
     canvas.create_text(
-        52,
-        43,
+        52, 43,
         text=f"{completed}/{total}",
         font=("Arial", 13, "bold"),
         fill=TEXT
     )
 
     canvas.create_text(
-        52,
-        62,
+        52, 62,
         text="Questions",
         font=("Arial", 7),
         fill=LIGHT_TEXT
@@ -2276,26 +2696,9 @@ def create_question_progress(parent):
         expand=True
     )
 
-    question_legend(
-        legend,
-        GREEN,
-        "Correct",
-        str(correct)
-    )
-
-    question_legend(
-        legend,
-        RED,
-        "Incorrect",
-        str(incorrect)
-    )
-
-    question_legend(
-        legend,
-        "#b9c5db",
-        "Remaining",
-        str(total - completed)
-    )
+    question_legend(legend, GREEN, "Correct", str(correct))
+    question_legend(legend, RED, "Incorrect", str(incorrect))
+    question_legend(legend, "#b9c5db", "Remaining", str(total - completed))
 
 
 def question_legend(parent, colour, name, number):
@@ -2316,9 +2719,7 @@ def question_legend(parent, colour, name, number):
         font=("Arial", 10),
         bg=CARD,
         fg=colour
-    ).pack(
-        side="left"
-    )
+    ).pack(side="left")
 
     tk.Label(
         row,
@@ -2373,10 +2774,7 @@ def create_time_panel(parent):
         pady=(12, 2)
     )
 
-    # Current time
-
     minutes = time_left // 60
-
     seconds = time_left % 60
 
     time_text = f"{minutes:02d}:{seconds:02d}"
@@ -2387,11 +2785,7 @@ def create_time_panel(parent):
         font=("Georgia", 22, "bold"),
         bg=CARD,
         fg=TEXT
-    ).pack(
-        pady=5
-    )
-
-    # Time bar
+    ).pack(pady=5)
 
     background = tk.Frame(
         frame,
@@ -2407,7 +2801,7 @@ def create_time_panel(parent):
 
     background.pack_propagate(False)
 
-    percentage = time_left / (10 * 60)
+    percentage = max(time_left / (10 * 60), 0)
 
     tk.Frame(
         background,
@@ -2432,11 +2826,6 @@ def update_timer():
     if quiz_content is None:
         return
 
-    # Refresh only the timer panel by rebuilding page
-    # every second would be too heavy, so use a small
-    # top-level label approach.
-
-    # If time reaches zero
     if time_left <= 0:
 
         show_quiz_result()
@@ -2445,13 +2834,10 @@ def update_timer():
 
     time_left -= 1
 
-    # Schedule again
     timer_job = quiz_content.after(
         1000,
         update_timer
     )
-
-    # We don't rebuild the entire page every second.
 
 
 # ============================================================
@@ -2497,7 +2883,6 @@ def create_question_overview(parent):
     for i in range(len(quiz_questions)):
 
         row = i // 5
-
         column = i % 5
 
         if i == current_question:
@@ -2508,11 +2893,8 @@ def create_question_overview(parent):
         elif i in answered_questions:
 
             if answered_questions[i] == "correct":
-
                 background = "#285943"
-
             else:
-
                 background = "#5a2931"
 
             foreground = TEXT
@@ -2553,9 +2935,7 @@ def create_quiz_quote(parent):
         highlightthickness=1
     )
 
-    frame.pack(
-        fill="x"
-    )
+    frame.pack(fill="x")
 
     image = load_quiz_image(
         "quiz_quote.png",
@@ -2583,9 +2963,7 @@ def create_quiz_quote(parent):
         bg=CARD,
         fg=GOLD_LIGHT,
         justify="center"
-    ).pack(
-        pady=12
-    )
+    ).pack(pady=12)
 
 
 # ============================================================
@@ -2595,10 +2973,14 @@ def create_quiz_quote(parent):
 def show_quiz_result():
 
     global timer_job
+    global quiz_score
 
-    save_quiz_result()
-
-    # Stop timer
+    # Calculate final score using all selected answers.
+    quiz_score = sum(
+        1
+        for question_number, answer_index in selected_answers.items()
+        if answer_index == quiz_questions[question_number]["answer"]
+    )
 
     if timer_job is not None:
 
@@ -2609,7 +2991,7 @@ def show_quiz_result():
 
         timer_job = None
 
-    # Clear page
+    save_quiz_result()
 
     for widget in quiz_content.winfo_children():
         widget.destroy()
@@ -2639,9 +3021,7 @@ def show_quiz_result():
         font=("Georgia", 28, "bold"),
         bg=BG,
         fg=TEXT
-    ).pack(
-        pady=10
-    )
+    ).pack(pady=10)
 
     tk.Label(
         result,
@@ -2649,9 +3029,7 @@ def show_quiz_result():
         font=("Arial", 15),
         bg=BG,
         fg=LIGHT_TEXT
-    ).pack(
-        pady=10
-    )
+    ).pack(pady=10)
 
     percentage = (
         quiz_score / len(quiz_questions)
@@ -2663,9 +3041,7 @@ def show_quiz_result():
         font=("Georgia", 32, "bold"),
         bg=BG,
         fg=GOLD_LIGHT
-    ).pack(
-        pady=10
-    )
+    ).pack(pady=10)
 
     tk.Button(
         result,
@@ -2677,9 +3053,7 @@ def show_quiz_result():
         padx=30,
         pady=10,
         command=lambda: show_quiz(quiz_content)
-    ).pack(
-        pady=20
-    )
+    ).pack(pady=20)
 
 
 # ============================================================
@@ -2687,7 +3061,5 @@ def show_quiz_result():
 # ============================================================
 
 def category_selected(category):
-
-    """Show only the quizzes of the chosen category."""
 
     show_quiz(quiz_content, category)
