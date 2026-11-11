@@ -11,7 +11,7 @@ from myths import show_myths
 from thunder_dragon import show_thunder_dragon
 from myth_detail import show_myth_detail as show_other_myth_detail
 from creatures import show_creatures
-from exploreBhutan import show_regions
+from region import show_regions
 from task import show_tasks
 from favorites import MythLabFavourites
 from about import show_about
