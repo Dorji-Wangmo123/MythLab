@@ -1,13 +1,12 @@
-# myths.py
 
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps
 
-# ==================================================
-# COLOURS
-# ==================================================
+# ============================================================
+# MYTHLAB - MYTHS PAGE
+# ============================================================
 
 BG = "#061b2b"
 SIDEBAR = "#071522"
@@ -16,78 +15,176 @@ GOLD = "#d6a84f"
 TEXT = "#f5ead0"
 LIGHT_TEXT = "#c7c1b3"
 
-# ==================================================
-# IMAGE LOCATION
-# ==================================================
-
 PROJECT_DIR = Path(__file__).resolve().parent
 IMAGE_DIR = PROJECT_DIR / "assets"
 
-# Keep image objects in memory so Tkinter does not remove them.
 image_refs = []
 
-def show_myths(parent, open_detail=None):
-    """
-    Display the Myths page inside the main MythLab window.
+# ============================================================
+# MYTH DATA
+# ============================================================
 
-    The page is built inside the parent frame instead of creating
-    another Tk() window. This keeps MythLab as one application.
-    """
+MYTHS = [
+    # GODS AND GODDESSES
+    ("Gods & Goddesses", "Genyen Jagpa Melen",
+     "A powerful guardian deity associated with Dechenphu Lhakhang.",
+     "genyen_jagpa_melen.png", "Bhutan"),
 
-    # Clear anything currently inside the page area.
+    ("Gods & Goddesses", "Ap Chhundu",
+     "The traditional guardian deity of Haa Valley.",
+     "ap_chhundu.png", "Bhutan"),
+
+    ("Gods & Goddesses", "Jomo (Aum Jomo)",
+     "The sacred mountain goddess associated with Mount Jomolhari.",
+     "jomo.png", "Bhutan"),
+
+    ("Gods & Goddesses", "Ap Genyen Domtshang",
+     "A local guardian deity associated with Changangkha Lhakhang.",
+     "ap_genyen_domtshang.png", "Bhutan"),
+
+    ("Gods & Goddesses", "Guru Rinpoche",
+     "The great Buddhist master whose teachings shaped Bhutan.",
+     "guru_rinpoche.png", "Bhutan"),
+
+    ("Gods & Goddesses", "Yeshey Gonpo",
+     "A powerful Dharma protector revered in Bhutanese traditions.",
+     "yeshey_gonpo.png", "Bhutan"),
+
+    # HEROES
+    ("Heroes", "The Story of King Gesar",
+     "The legendary hero celebrated across Tibetan and Himalayan traditions.",
+     "heroes.png", "Asia"),
+
+    ("Heroes", "Drukpa Kunley",
+     "The Divine Madman remembered for his humour and unconventional teachings.",
+     "drukpa_kuenley.png", "Bhutan"),
+
+    # CREATURES
+    ("Creatures", "The Thunder Dragon",
+     "The sacred dragon associated with Bhutan and its national identity.",
+     "thunder_dragon.png", "Bhutan"),
+
+    ("Creatures", "The Yeti",
+     "A mysterious mountain being from Himalayan folklore.",
+     "yeti.png", "Bhutan"),
+
+    ("Creatures", "The Snow Lion",
+     "A mythical symbol of strength, joy and spiritual qualities.",
+     "snow_lion.png", "Asia"),
+
+    ("Creatures", "Tshomen and Lu",
+     "Water spirits associated with sacred lakes and rivers.",
+     "tshomen_lu.png", "Bhutan"),
+
+    # FOLKLORE
+    ("Folklore", "The Firebird",
+     "A magical bird from traditional Slavic fairy tales.",
+     "firebird (1).png", "Asia"),
+
+    ("Folklore", "The Black Mountain",
+     "A sacred Bhutanese landscape connected with local traditions.",
+     "black_mountain (2).png", "Bhutan"),
+
+    ("Folklore", "The Legend of Paro Taktsang",
+     "The sacred cliffside monastery associated with Guru Rinpoche.",
+     "paro_taktsang.png", "Bhutan"),
+
+    ("Folklore", "The Birth of the Universe",
+     "Traditional explanations of the origins of the universe.",
+     "gods.png", "Other"),
+
+    ("Folklore", "The Demoness of Dochula",
+     "A traditional story associated with Drukpa Kunley and Chimi Lhakhang.",
+     "dochula.png", "Bhutan"),
+
+    ("Folklore", "The Man Saved by a Dragon",
+     "A mysterious survival tale associated with the mountains of Bhutan.",
+     "thunder_dragon.png", "Bhutan"),
+]
+
+CATEGORIES = [
+    "All",
+    "Gods & Goddesses",
+    "Heroes",
+    "Creatures",
+    "Folklore"
+]
+
+REGIONS = ["All", "Bhutan", "Asia", "Europe", "Other"]
+
+PAGE_SIZE = 8
+
+
+def show_myths(parent, open_detail=None, initial_category="All"):
+
+    global image_refs
+    image_refs = []
+
     for widget in parent.winfo_children():
         widget.destroy()
 
+    # ========================================================
+    # IMAGE HELPERS
+    # ========================================================
+
+    def normalise_filename(filename):
+        """Remove spaces and symbols for flexible filename matching."""
+        return "".join(
+            character.lower()
+            for character in Path(filename).stem
+            if character.isalnum()
+        )
+
     def find_image(filename):
+        """Find images using exact or flexible filename matching."""
 
-        path = IMAGE_DIR / filename
+        extensions = [".png", ".jpg", ".jpeg", ".webp"]
 
-        if path.exists():
-            print("FOUND IMAGE:", path)
-            return path
+        requested = Path(filename)
+        target_name = normalise_filename(filename)
 
-        path = PROJECT_DIR / filename
+        # Check exact locations first
+        possible_paths = [
+            IMAGE_DIR / filename,
+            PROJECT_DIR / filename
+        ]
 
-        if path.exists():
-            print("FOUND IMAGE:", path)
-            return path
+        for path in possible_paths:
+            if path.exists() and path.is_file():
+                print("IMAGE FOUND:", path)
+                return path
 
-        stem = Path(filename).stem.lower()
-        extension = Path(filename).suffix.lower()
-
-        if IMAGE_DIR.is_dir():
+        # Search the assets folder
+        if IMAGE_DIR.exists():
 
             for item in IMAGE_DIR.iterdir():
 
+                if not item.is_file():
+                    continue
+
+                if item.suffix.lower() not in extensions:
+                    continue
+
+                item_name = normalise_filename(item.name)
+
                 if (
-                    item.is_file()
-                    and item.suffix.lower() == extension
+                    item_name == target_name
+                    or item_name.startswith(target_name)
+                    or target_name.startswith(item_name)
                 ):
+                    print("IMAGE FOUND:", item)
+                    return item
 
-                    item_stem = item.stem.lower()
-
-                    if (
-                        item_stem.startswith(stem)
-                        or stem.startswith(item_stem)
-                    ):
-
-                        return item
-
+        print("IMAGE NOT FOUND:", filename)
         return None
 
     def load_image(filename, size):
-
         path = find_image(filename)
 
         if path is None:
-
-            print("IMAGE NOT FOUND:", filename)
-            print("Looking inside:", IMAGE_DIR)
-
             return None
 
         try:
-
             image = Image.open(path).convert("RGB")
 
             image = ImageOps.fit(
@@ -97,226 +194,70 @@ def show_myths(parent, open_detail=None):
             )
 
             photo = ImageTk.PhotoImage(image)
-
             image_refs.append(photo)
-
-            print(
-                "IMAGE LOADED:",
-                filename,
-                photo
-            )
 
             return photo
 
         except Exception as error:
-
-            print("Could not load:", filename)
-            print("Error:", error)
-
+            print("IMAGE ERROR:", filename, error)
             return None
 
-    def create_image(parent_widget, filename, size):
+    # ========================================================
+    # FILTER STATE
+    # ========================================================
 
-        photo = load_image(
-            filename,
-            size
-        )
+    if initial_category not in CATEGORIES:
+        initial_category = "All"
 
-        print(
-            "CREATE IMAGE:",
-            filename,
-            "PHOTO:",
-            photo
-        )
-
-        if photo:
-
-            label = tk.Label(
-                parent_widget,
-                image=photo,
-                bg=CARD
-            )
-
-        else:
-
-            label = tk.Label(
-                parent_widget,
-                text="IMAGE NOT FOUND",
-                font=("Arial", 8),
-                bg="#183b50",
-                fg=LIGHT_TEXT
-            )
-
-        label.pack(
-            fill="x",
-            padx=5,
-            pady=5
-        )
-
-        return label
-
-    # Current filter / search / page.
     state = {
+        "category": initial_category,
         "region": "All",
-        "category": "All",
         "search": "",
         "page": 1
     }
 
-    # Filter buttons, kept so the selected one can be highlighted.
-    region_buttons = {}
     category_buttons = {}
+    region_buttons = {}
 
-
-    def highlight(buttons, selected):
-
-        for label, button in buttons.items():
-
-            if label == selected:
-                button.configure(bg=GOLD, fg=BG)
-            else:
-                button.configure(bg=BG, fg=TEXT)
-
-
-    def search_myth(event=None):
-
-        state["search"] = search_entry.get().strip().lower()
-        state["page"] = 1
-
-        render_cards()
-
-
-    def read_more(name):
-
-        # Open the selected myth inside MythLab's main content area.
-        if open_detail is not None:
-            open_detail(name)
-        else:
-            messagebox.showinfo(
-                name,
-                "The detail page for this myth is not connected yet."
-            )
-
-
-    def favourite(name):
-
-        messagebox.showinfo(
-            "Favourite",
-            name + " added to your favourites."
-        )
-
-
-    def filter_region(region):
-
-        state["region"] = region
-        state["page"] = 1
-
-        highlight(region_buttons, region)
-
-        render_cards()
-
-
-    def filter_category(category):
-
-        state["category"] = category
-        state["page"] = 1
-
-        highlight(category_buttons, category)
-
-        render_cards()
-
-
-    def go_to_page(number):
-
-        state["page"] = number
-
-        render_cards()
-
-        canvas.yview_moveto(0)
-
-
-    # ==================================================
-    # MAIN AREA
-    # ==================================================
-
-    main_area = tk.Frame(
-        parent,
-        bg=BG
-    )
-
-    main_area.pack(
-        side="right",
-        fill="both",
-        expand=True
-    )
-
-    # ==================================================
-    # SCROLLABLE CANVAS
-    # ==================================================
+    # ========================================================
+    # SCROLLABLE PAGE
+    # ========================================================
 
     canvas = tk.Canvas(
-        main_area,
+        parent,
         bg=BG,
         highlightthickness=0
     )
 
     scrollbar = tk.Scrollbar(
-        main_area,
+        parent,
         orient="vertical",
         command=canvas.yview
     )
 
-    canvas.configure(
-        yscrollcommand=scrollbar.set
-    )
+    canvas.configure(yscrollcommand=scrollbar.set)
 
-    scrollbar.pack(
-        side="right",
-        fill="y"
-    )
+    scrollbar.pack(side="right", fill="y")
+    canvas.pack(side="left", fill="both", expand=True)
 
-    canvas.pack(
-        side="left",
-        fill="both",
-        expand=True
-    )
+    content = tk.Frame(canvas, bg=BG)
 
-    content = tk.Frame(
-        canvas,
-        bg=BG
-    )
-
-    content_window = canvas.create_window(
+    window_id = canvas.create_window(
         (0, 0),
         window=content,
         anchor="nw"
     )
 
     def update_scroll(event=None):
-
-        canvas.configure(
-            scrollregion=canvas.bbox("all")
-        )
+        canvas.configure(scrollregion=canvas.bbox("all"))
 
     def resize_content(event):
+        canvas.itemconfigure(window_id, width=event.width)
 
-        canvas.itemconfig(
-            content_window,
-            width=event.width
-        )
-
-    content.bind(
-        "<Configure>",
-        update_scroll
-    )
-
-    canvas.bind(
-        "<Configure>",
-        resize_content
-    )
+    content.bind("<Configure>", update_scroll)
+    canvas.bind("<Configure>", resize_content)
 
     def scroll_canvas(event):
-
         if getattr(event, "num", None) == 4:
             direction = -1
         elif getattr(event, "num", None) == 5:
@@ -324,216 +265,94 @@ def show_myths(parent, open_detail=None):
         else:
             direction = -1 if event.delta > 0 else 1
 
-        canvas.yview_scroll(
-            direction,
-            "units"
-        )
+        canvas.yview_scroll(direction, "units")
 
     canvas.bind_all("<MouseWheel>", scroll_canvas)
-    canvas.bind_all("<Button-4>", scroll_canvas)
-    canvas.bind_all("<Button-5>", scroll_canvas)
 
-    # ==================================================
-    # HERO SECTION
-    # ==================================================
-    #
-    # Only this section has been changed.
-    #
-    # The old Frame + blue hero_text box has been replaced
-    # with a Canvas so the text sits directly on the image.
-    #
+    # ========================================================
+    # HERO BANNER
+    # ========================================================
 
     hero = tk.Canvas(
         content,
+        height=240,
         bg="#183b50",
-        height=250,
-        highlightthickness=0,
-        bd=0
+        highlightthickness=0
     )
 
-    hero.pack(
-        fill="x",
-        padx=30,
-        pady=(0, 15)
-    )
+    hero.pack(fill="x", padx=30, pady=(20, 18))
 
-    # ==================================================
-    # HERO IMAGE
-    # ==================================================
+    hero_ref = [None]
 
-    hero_image_ref = [None]
+    def draw_hero(event=None):
+        width = max(hero.winfo_width(), 900)
+        height = 240
 
-    def update_hero(event=None):
+        hero.delete("all")
 
-        width = hero.winfo_width()
-        height = hero.winfo_height()
+        path = find_image("welcome.png")
 
-        # If Tkinter has not calculated the size yet,
-        # use a safe default.
-        if width <= 1:
-            width = 1050
+        if path:
+            try:
+                image = Image.open(path).convert("RGB")
 
-        if height <= 1:
-            height = 250
+                image = ImageOps.fit(
+                    image,
+                    (width, height),
+                    method=Image.Resampling.LANCZOS
+                )
 
-        hero_path = find_image(
-            "welcome.png"
+                photo = ImageTk.PhotoImage(image)
+                hero_ref[0] = photo
+                image_refs.append(photo)
+
+                hero.create_image(
+                    0, 0,
+                    image=photo,
+                    anchor="nw"
+                )
+
+            except Exception as error:
+                print("Hero image error:", error)
+
+        hero.create_text(
+            45, 45,
+            text="MYTHLAB COLLECTION",
+            anchor="w",
+            font=("Arial", 10, "bold"),
+            fill=GOLD
         )
 
-        if hero_path is None:
+        hero.create_text(
+            45, 88,
+            text="Discover the Myths",
+            anchor="w",
+            font=("Georgia", 27, "bold"),
+            fill=TEXT
+        )
 
-            hero.delete("all")
+        hero.create_text(
+            45, 145,
+            text=(
+                "Explore ancient stories, guardian deities, legendary heroes\n"
+                "and mysterious creatures from Bhutan and beyond."
+            ),
+            anchor="w",
+            justify="left",
+            font=("Arial", 11),
+            fill=LIGHT_TEXT
+        )
 
-            hero.create_text(
-                width / 2,
-                height / 2,
-                text="Welcome to MythLab",
-                font=("Georgia", 24, "bold"),
-                fill=TEXT
-            )
-
-            return
-
-        try:
-
-            image = Image.open(
-                hero_path
-            ).convert("RGB")
-
-            # Fit the image exactly to the hero area.
-            image = ImageOps.fit(
-                image,
-                (width, height),
-                method=Image.Resampling.LANCZOS
-            )
-
-            photo = ImageTk.PhotoImage(
-                image
-            )
-
-            hero_image_ref[0] = photo
-
-            # Keep reference globally as well.
-            image_refs.append(photo)
-
-            hero.delete("all")
-
-            # --------------------------------------------------
-            # IMAGE
-            # --------------------------------------------------
-
-            hero.create_image(
-                0,
-                0,
-                image=photo,
-                anchor="nw"
-            )
-
-            # --------------------------------------------------
-            # TEXT SHADOW
-            # --------------------------------------------------
-            # Very subtle shadow only.
-            # There is NO background rectangle.
-            # --------------------------------------------------
-
-            hero.create_text(
-                48,
-                48,
-                text="Myths",
-                anchor="w",
-                font=("Arial", 10),
-                fill="#071522"
-            )
-
-            hero.create_text(
-                48,
-                83,
-                text="✥  Discover the Myths",
-                anchor="w",
-                font=("Georgia", 25, "bold"),
-                fill="#071522"
-            )
-
-            hero.create_text(
-                48,
-                132,
-                text=(
-                    "Discover ancient stories, legendary heroes, "
-                    "and magical beings\n"
-                    "from Bhutan and cultures around the world."
-                ),
-                anchor="w",
-                font=("Arial", 10),
-                fill="#071522",
-                justify="left"
-            )
-
-            # --------------------------------------------------
-            # MAIN TEXT
-            # --------------------------------------------------
-
-            hero.create_text(
-                45,
-                45,
-                text="Myths",
-                anchor="w",
-                font=("Arial", 10),
-                fill=GOLD
-            )
-
-            hero.create_text(
-                45,
-                80,
-                text="✥  Discover the Myths",
-                anchor="w",
-                font=("Georgia", 25, "bold"),
-                fill=TEXT
-            )
-
-            hero.create_text(
-                45,
-                129,
-                text=(
-                    "Discover ancient stories, legendary heroes, "
-                    "and magical beings\n"
-                    "from Bhutan and cultures around the world."
-                ),
-                anchor="w",
-                font=("Arial", 10),
-                fill=LIGHT_TEXT,
-                justify="left"
-            )
-
-        except Exception as error:
-
-            print(
-                "Hero image error:",
-                error
-            )
-
-    hero.bind(
-        "<Configure>",
-        update_hero
-    )
-
-    # Force initial drawing.
+    hero.bind("<Configure>", draw_hero)
     hero.update_idletasks()
-    update_hero()
+    draw_hero()
 
-    # ==================================================
-    # SEARCH BAR
-    # ==================================================
+    # ========================================================
+    # SEARCH
+    # ========================================================
 
-    search_frame = tk.Frame(
-        content,
-        bg=BG
-    )
-
-    search_frame.pack(
-        fill="x",
-        padx=30,
-        pady=(0, 15)
-    )
+    search_frame = tk.Frame(content, bg=BG)
+    search_frame.pack(fill="x", padx=30, pady=(0, 15))
 
     search_entry = tk.Entry(
         search_frame,
@@ -548,111 +367,108 @@ def show_myths(parent, open_detail=None):
         side="left",
         fill="x",
         expand=True,
-        ipady=10,
+        ipady=11,
         padx=(0, 10)
     )
 
-    search_entry.bind("<Return>", search_myth)
+    # ========================================================
+    # FILTER AREA
+    # ========================================================
 
-    tk.Button(
-        search_frame,
-        text="🔍",
-        font=("Arial", 12),
-        bg=GOLD,
-        fg=BG,
-        relief="flat",
-        padx=15,
-        pady=6,
-        command=search_myth
-    ).pack(
-        side="right"
-    )
+    filter_frame = tk.Frame(content, bg=BG)
+    filter_frame.pack(fill="x", padx=30, pady=(0, 15))
 
-    # ==================================================
-    # FILTERS
-    # ==================================================
-
-    filter_frame = tk.Frame(
-        content,
-        bg=BG
-    )
-
-    filter_frame.pack(
-        fill="x",
-        padx=30,
-        pady=(0, 18)
-    )
+    category_row = tk.Frame(filter_frame, bg=BG)
+    category_row.pack(fill="x", pady=(0, 10))
 
     tk.Label(
-        filter_frame,
-        text="📍 Region:",
+        category_row,
+        text="CATEGORY",
         font=("Arial", 9, "bold"),
         bg=BG,
-        fg=TEXT
-    ).pack(
-        side="left",
-        padx=(0, 8)
-    )
+        fg=GOLD
+    ).pack(side="left", padx=(0, 10))
 
-    regions = [
-        "All",
-        "Bhutan",
-        "Asia",
-        "Europe",
-        "Other"
-    ]
-
-    for region in regions:
-
-        region_button = tk.Button(
-            filter_frame,
-            text=region,
-            font=("Arial", 8),
-            bg=GOLD if region == "All" else BG,
-            fg=BG if region == "All" else TEXT,
-            activebackground=GOLD,
-            activeforeground=BG,
-            relief="solid",
-            bd=1,
-            cursor="hand2",
-            command=lambda r=region: filter_region(r)
-        )
-
-        region_button.pack(
-            side="left",
-            padx=3,
-            ipadx=7
-        )
-
-        region_buttons[region] = region_button
+    region_row = tk.Frame(filter_frame, bg=BG)
+    region_row.pack(fill="x")
 
     tk.Label(
-        filter_frame,
-        text="   Categories:",
+        region_row,
+        text="REGION",
         font=("Arial", 9, "bold"),
         bg=BG,
-        fg=TEXT
-    ).pack(
-        side="left",
-        padx=(15, 5)
-    )
+        fg=GOLD
+    ).pack(side="left", padx=(0, 10))
 
-    categories = [
-        "All",
-        "Legendary Beings",
-        "Heroic Tales",
-        "Creation Myths",
-        "Folk Tales"
-    ]
+    # ========================================================
+    # CARD AREA
+    # ========================================================
 
-    for category in categories:
+    card_area = tk.Frame(content, bg=BG)
+    card_area.pack(fill="x", padx=30)
 
-        category_button = tk.Button(
-            filter_frame,
+    page_frame = tk.Frame(content, bg=BG)
+    page_frame.pack(pady=25)
+
+    # ========================================================
+    # FILTER FUNCTIONS
+    # ========================================================
+
+    def highlight(buttons, selected):
+        for label, button in buttons.items():
+            active = label == selected
+
+            button.configure(
+                bg=GOLD if active else BG,
+                fg=BG if active else TEXT
+            )
+
+    def filter_category(category):
+        state["category"] = category
+        state["page"] = 1
+
+        highlight(category_buttons, category)
+        render_cards()
+
+    def filter_region(region):
+        state["region"] = region
+        state["page"] = 1
+
+        highlight(region_buttons, region)
+        render_cards()
+
+    def search_myth(event=None):
+        state["search"] = search_entry.get().strip().lower()
+        state["page"] = 1
+        render_cards()
+
+    def read_more(name):
+        if open_detail:
+            open_detail(name)
+        else:
+            messagebox.showinfo(
+                "MythLab",
+                "The story detail page is not connected."
+            )
+
+    def favourite(name):
+        messagebox.showinfo(
+            "Favourite",
+            name + " added to your favourites."
+        )
+
+    # ========================================================
+    # FILTER BUTTONS
+    # ========================================================
+
+    for category in CATEGORIES:
+
+        button = tk.Button(
+            category_row,
             text=category,
-            font=("Arial", 7),
-            bg=GOLD if category == "All" else BG,
-            fg=BG if category == "All" else TEXT,
+            font=("Arial", 8, "bold"),
+            bg=BG,
+            fg=TEXT,
             activebackground=GOLD,
             activeforeground=BG,
             relief="solid",
@@ -661,326 +477,94 @@ def show_myths(parent, open_detail=None):
             command=lambda c=category: filter_category(c)
         )
 
-        category_button.pack(
-            side="left",
-            padx=2,
-            ipadx=5
+        button.pack(side="left", padx=3, ipadx=7, ipady=5)
+        category_buttons[category] = button
+
+    for region in REGIONS:
+
+        button = tk.Button(
+            region_row,
+            text=region,
+            font=("Arial", 8),
+            bg=BG,
+            fg=TEXT,
+            activebackground=GOLD,
+            activeforeground=BG,
+            relief="solid",
+            bd=1,
+            cursor="hand2",
+            command=lambda r=region: filter_region(r)
         )
 
-        category_buttons[category] = category_button
+        button.pack(side="left", padx=3, ipadx=7, ipady=5)
+        region_buttons[region] = button
 
-    # ==================================================
-    # MYTH DATA
-    # ==================================================
+    tk.Button(
+        search_frame,
+        text="SEARCH",
+        font=("Arial", 9, "bold"),
+        bg=GOLD,
+        fg=BG,
+        relief="flat",
+        cursor="hand2",
+        padx=18,
+        pady=7,
+        command=search_myth
+    ).pack(side="right")
 
-    myths = [
+    search_entry.bind("<Return>", search_myth)
 
-        (
-            "Legendary Beings",
-            "The Thunder Dragon",
-            "A powerful and sacred dragon that\n"
-            "brings rain, fertility and protects the\n"
-            "kingdom.",
-            "thunder_dragon.png"
-        ),
-
-        (
-            "Heroic Tales",
-            "The Story of King Gesar",
-            "The legendary hero who fought against\n"
-            "evil and brought peace to the land.",
-            "heroes.png"
-        ),
-
-        (
-            "Creation Myths",
-            "The Yeti",
-            "A mysterious being said to live in the\n"
-            "high mountains of Bhutan and the\n"
-            "Himalayas.",
-            "yeti.png"
-        ),
-
-        (
-            "Folk Tales",
-            "The Firebird",
-            "A magical bird that symbolizes\n"
-            "rebirth, hope and the eternal cycle\n"
-            "of life.",
-            "firebird (1).png"
-        ),
-
-        (
-            "Legendary Beings",
-            "The Black Mountain",
-            "A sacred mountain with hidden\n"
-            "powers and ancient secrets.",
-            "black_mountain (2).png"
-        ),
-
-        (
-            "Folk Tales",
-            "The Snow Lion",
-            "A mythical creature symbolizing\n"
-            "strength, purity and good fortune.",
-            "snow_lion.png"
-        ),
-
-        (
-            "Heroic Tales",
-            "The Legend of Paro Taktsang",
-            "The story of Guru Rinpoche and the\n"
-            "sacred monastery built in a cliff.",
-            "paro_taktsang.png"
-        ),
-
-        (
-            "Creation Myths",
-            "The Birth of the Universe",
-            "How the world, its beings and\n"
-            "humanity came into existence.",
-            "gods.png"
-        )
-    ]
-
-    # ==================================================
-    # MYTH CARDS
-    # ==================================================
-
-    # Which region each myth belongs to (used by the Region filter).
-    myth_regions = {
-        "The Thunder Dragon": "Bhutan",
-        "The Story of King Gesar": "Asia",
-        "The Yeti": "Bhutan",
-        "The Firebird": "Asia",
-        "The Black Mountain": "Bhutan",
-        "The Snow Lion": "Asia",
-        "The Legend of Paro Taktsang": "Bhutan",
-        "The Birth of the Universe": "Other"
-    }
-
-    PAGE_SIZE = 8
-
-    card_area = tk.Frame(
-        content,
-        bg=BG
-    )
-
-    card_area.pack(
-        fill="x",
-        padx=30
-    )
-
-    page_frame = tk.Frame(
-        content,
-        bg=BG
-    )
-
-    page_frame.pack(
-        pady=25
-    )
-
+    # ========================================================
+    # MATCHING STORIES
+    # ========================================================
 
     def matching_myths():
-
-        """Myths that match the region, category and search text."""
-
         found = []
 
-        for myth in myths:
+        for myth in MYTHS:
 
-            category_name, name, description = myth[0], myth[1], myth[2]
-
-            if (
-                state["region"] != "All"
-                and myth_regions.get(name, "Other") != state["region"]
-            ):
-                continue
+            category, name, description, image, region = myth
 
             if (
                 state["category"] != "All"
-                and category_name != state["category"]
+                and category != state["category"]
             ):
                 continue
 
-            text = (
-                name + " " + description + " " + category_name
-            ).lower().replace("\n", " ")
+            if (
+                state["region"] != "All"
+                and region != state["region"]
+            ):
+                continue
 
-            if state["search"] and state["search"] not in text:
+            searchable = (
+                category + " " + name + " " + description
+            ).lower()
+
+            if (
+                state["search"]
+                and state["search"] not in searchable
+            ):
                 continue
 
             found.append(myth)
 
         return found
 
+    # ========================================================
+    # PAGINATION
+    # ========================================================
 
-    def render_cards():
-
-        for widget in card_area.winfo_children():
-            widget.destroy()
-
-        matches = matching_myths()
-
-        total_pages = max(1, -(-len(matches) // PAGE_SIZE))
-
-        state["page"] = min(state["page"], total_pages)
-
-        first = (state["page"] - 1) * PAGE_SIZE
-
-        page_items = matches[first:first + PAGE_SIZE]
-
-        if not page_items:
-
-            tk.Label(
-                card_area,
-                text="No myths found.\nTry another region, category or search.",
-                font=("Georgia", 13, "italic"),
-                bg=BG,
-                fg=LIGHT_TEXT,
-                pady=60
-            ).pack()
-
-        row = None
-
-        for index, myth in enumerate(page_items):
-
-            category = myth[0]
-            name = myth[1]
-            description = myth[2]
-            image_file = myth[3]
-
-            if index % 4 == 0:
-
-                row = tk.Frame(
-                    card_area,
-                    bg=BG
-                )
-
-                row.pack(
-                    fill="x",
-                    pady=5
-                )
-
-                for column in range(4):
-
-                    row.grid_columnconfigure(
-                        column,
-                        weight=1,
-                        uniform="myth_cards"
-                    )
-
-            card = tk.Frame(
-                row,
-                bg=CARD,
-                height=250
-            )
-
-            card.grid(
-                row=0,
-                column=index % 4,
-                sticky="nsew",
-                padx=5
-            )
-
-            card.pack_propagate(False)
-
-            create_image(
-                card,
-                image_file,
-                (235, 125)
-            )
-
-            tk.Label(
-                card,
-                text=category,
-                font=("Arial", 7),
-                bg=CARD,
-                fg=GOLD
-            ).pack(
-                anchor="w",
-                padx=10,
-                pady=(2, 0)
-            )
-
-            tk.Label(
-                card,
-                text=name,
-                font=("Georgia", 11, "bold"),
-                bg=CARD,
-                fg=TEXT
-            ).pack(
-                anchor="w",
-                padx=10,
-                pady=(3, 0)
-            )
-
-            tk.Label(
-                card,
-                text=description,
-                font=("Arial", 7),
-                bg=CARD,
-                fg=LIGHT_TEXT,
-                justify="left"
-            ).pack(
-                anchor="w",
-                padx=10,
-                pady=(2, 0)
-            )
-
-            button_frame = tk.Frame(
-                card,
-                bg=CARD
-            )
-
-            button_frame.pack(
-                fill="x",
-                padx=10,
-                pady=7
-            )
-
-            tk.Button(
-                button_frame,
-                text="Read More →",
-                font=("Arial", 7),
-                bg=BG,
-                fg=GOLD,
-                activebackground=GOLD,
-                activeforeground=BG,
-                relief="solid",
-                bd=1,
-                command=lambda n=name: read_more(n)
-            ).pack(
-                side="left"
-            )
-
-            tk.Button(
-                button_frame,
-                text="♡",
-                font=("Arial", 11),
-                bg=CARD,
-                fg=GOLD,
-                activebackground=CARD,
-                activeforeground=GOLD,
-                relief="flat",
-                command=lambda n=name: favourite(n)
-            ).pack(
-                side="right"
-            )
-
-        render_pagination(total_pages)
-
-
-    # ==================================================
-    # PAGE NUMBERS
-    # ==================================================
+    def go_to_page(number):
+        state["page"] = number
+        render_cards()
+        canvas.yview_moveto(0)
 
     def render_pagination(total_pages):
 
         for widget in page_frame.winfo_children():
             widget.destroy()
 
-        # Nothing to page through.
         if total_pages <= 1:
             return
 
@@ -989,87 +573,230 @@ def show_myths(parent, open_detail=None):
         tk.Button(
             page_frame,
             text="←",
-            font=("Arial", 11),
             bg=BG,
             fg=GOLD,
-            relief="solid",
-            bd=1,
-            cursor="hand2",
-            state="normal" if current > 1 else "disabled",
-            command=lambda: go_to_page(current - 1)
-        ).pack(
-            side="left",
-            padx=8
-        )
+            relief="flat",
+            command=lambda: go_to_page(current - 1),
+            state="normal" if current > 1 else "disabled"
+        ).pack(side="left", padx=5)
 
         for number in range(1, total_pages + 1):
 
             tk.Button(
                 page_frame,
                 text=str(number),
-                font=("Arial", 9, "bold"),
                 bg=GOLD if number == current else BG,
                 fg=BG if number == current else TEXT,
-                activebackground=GOLD,
-                activeforeground=BG,
                 relief="solid",
                 bd=1,
                 width=3,
-                cursor="hand2",
                 command=lambda n=number: go_to_page(n)
-            ).pack(
-                side="left",
-                padx=3
-            )
+            ).pack(side="left", padx=3)
 
         tk.Button(
             page_frame,
             text="→",
-            font=("Arial", 11),
             bg=BG,
             fg=GOLD,
-            relief="solid",
-            bd=1,
-            cursor="hand2",
-            state="normal" if current < total_pages else "disabled",
-            command=lambda: go_to_page(current + 1)
-        ).pack(
-            side="left",
-            padx=8
+            relief="flat",
+            command=lambda: go_to_page(current + 1),
+            state="normal" if current < total_pages else "disabled"
+        ).pack(side="left", padx=5)
+
+    # ========================================================
+    # STORY CARDS
+    # ========================================================
+
+    def render_cards():
+
+        for widget in card_area.winfo_children():
+            widget.destroy()
+
+        matches = matching_myths()
+
+        total_pages = max(
+            1,
+            (len(matches) + PAGE_SIZE - 1) // PAGE_SIZE
         )
 
+        state["page"] = min(state["page"], total_pages)
 
-    # Draw the first page.
+        start = (state["page"] - 1) * PAGE_SIZE
+        page_items = matches[start:start + PAGE_SIZE]
+
+        if not page_items:
+
+            tk.Label(
+                card_area,
+                text="No stories found.\nTry another category, region or search.",
+                font=("Georgia", 14, "italic"),
+                bg=BG,
+                fg=LIGHT_TEXT,
+                pady=70
+            ).pack()
+
+            render_pagination(total_pages)
+            return
+
+        for index, myth in enumerate(page_items):
+
+            category, name, description, image_file, region = myth
+
+            # Create a new row after every four cards
+            if index % 4 == 0:
+
+                row = tk.Frame(card_area, bg=BG)
+                row.pack(fill="x", pady=7)
+
+                for col in range(4):
+                    row.grid_columnconfigure(
+                        col,
+                        weight=1,
+                        uniform="myth_cards"
+                    )
+
+            card = tk.Frame(
+                row,
+                bg=CARD,
+                height=300,
+                highlightbackground="#755d2d",
+                highlightthickness=1
+            )
+
+            card.grid(
+                row=0,
+                column=index % 4,
+                sticky="nsew",
+                padx=6
+            )
+
+            card.grid_propagate(False)
+
+            # CARD IMAGE
+            photo = load_image(image_file, (250, 135))
+
+            if photo:
+
+                image_label = tk.Label(
+                    card,
+                    image=photo,
+                    bg=CARD
+                )
+
+            else:
+
+                image_label = tk.Label(
+                    card,
+                    text="MYTHLAB",
+                    font=("Georgia", 18, "bold"),
+                    bg="#183b50",
+                    fg=GOLD,
+                    height=5
+                )
+
+            image_label.pack(
+                fill="x",
+                padx=5,
+                pady=5
+            )
+
+            # CATEGORY
+            tk.Label(
+                card,
+                text=category.upper(),
+                font=("Arial", 7, "bold"),
+                bg=CARD,
+                fg=GOLD
+            ).pack(
+                anchor="w",
+                padx=10,
+                pady=(3, 0)
+            )
+
+            # TITLE
+            tk.Label(
+                card,
+                text=name,
+                font=("Georgia", 11, "bold"),
+                bg=CARD,
+                fg=TEXT,
+                wraplength=235,
+                justify="left"
+            ).pack(
+                anchor="w",
+                padx=10,
+                pady=(5, 2)
+            )
+
+            # DESCRIPTION
+            tk.Label(
+                card,
+                text=description,
+                font=("Arial", 8),
+                bg=CARD,
+                fg=LIGHT_TEXT,
+                wraplength=235,
+                justify="left"
+            ).pack(
+                anchor="w",
+                padx=10
+            )
+
+            # BUTTONS
+            button_frame = tk.Frame(card, bg=CARD)
+
+            button_frame.pack(
+                side="bottom",
+                fill="x",
+                padx=10,
+                pady=10
+            )
+
+            tk.Button(
+                button_frame,
+                text="Read Story  →",
+                font=("Arial", 8, "bold"),
+                bg=GOLD,
+                fg=BG,
+                activebackground="#e5c875",
+                relief="flat",
+                cursor="hand2",
+                command=lambda n=name: read_more(n)
+            ).pack(side="left")
+
+            tk.Button(
+                button_frame,
+                text="♡",
+                font=("Arial", 13),
+                bg=CARD,
+                fg=GOLD,
+                relief="flat",
+                cursor="hand2",
+                command=lambda n=name: favourite(n)
+            ).pack(side="right")
+
+        render_pagination(total_pages)
+
+    # ========================================================
+    # INITIAL DISPLAY
+    # ========================================================
+
+    highlight(category_buttons, state["category"])
+    highlight(region_buttons, state["region"])
+
     render_cards()
 
 
-# ==================================================
-# OPTIONAL STANDALONE TEST
-# ==================================================
+# ============================================================
+# STANDALONE TEST
+# ============================================================
 
 if __name__ == "__main__":
 
-    test_root = tk.Tk()
+    root = tk.Tk()
+    root.title("MythLab - Myths")
+    root.geometry("1280x900")
+    root.configure(bg=BG)
 
-    test_root.title(
-        "MythLab - Myths"
-    )
-
-    test_root.geometry(
-        "1280x900"
-    )
-
-    test_root.minsize(
-        1000,
-        700
-    )
-
-    test_root.configure(
-        bg=BG
-    )
-
-    show_myths(
-        test_root
-    )
-
-    test_root.mainloop()
+    show_myths(root)
+    root.mainloop()
