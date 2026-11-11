@@ -1,3 +1,4 @@
+#main.py
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 from pathlib import Path
@@ -39,6 +40,7 @@ image_refs = []
 # Navigation state
 current_page = None
 nav_buttons = {}
+selected_myth_category = "All"
 
 current_username = (
     sys.argv[1].strip()
@@ -534,12 +536,14 @@ def clear_frame(frame):
         widget.destroy()
 
 
-def show_myth_detail(name):
+def show_myth_detail(name, category=None):
+    """Open a myth story and remember the category to return to."""
+    global current_page, selected_myth_category
 
-    """Show a myth detail page inside the existing MythLab window."""
-    global current_page
+    # Remember the category from which the story was opened.
+    if category:
+        selected_myth_category = category
 
-    # Hide the current page but keep the main sidebar visible.
     hide_all_pages()
     clear_frame(myth_detail_page)
 
@@ -548,22 +552,24 @@ def show_myth_detail(name):
         expand=True
     )
 
-    # Keep the Myths sidebar item highlighted.
     current_page = "Myths"
     set_active_nav("Myths")
+
+    # Return to the same category when Back is clicked.
+    back_to_myths = lambda: open_page("Myths")
 
     if name == "The Thunder Dragon":
         show_thunder_dragon(
             myth_detail_page,
-            lambda: open_page("Myths")
+            back_to_myths
         )
     else:
         show_other_myth_detail(
             myth_detail_page,
-            lambda: open_page("Myths"),
+            back_to_myths,
             name
         )
-
+##
 
 def open_mythlab_page(page):
 
@@ -654,8 +660,9 @@ def _show_page(page):
         )
 
         show_myths(
-            myths_page,
-            show_myth_detail
+        myths_page,
+        show_myth_detail,
+        initial_category=selected_myth_category
         )
 
 

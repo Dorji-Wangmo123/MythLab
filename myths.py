@@ -444,7 +444,7 @@ def show_myths(parent, open_detail=None, initial_category="All"):
 
     def read_more(name):
         if open_detail:
-            open_detail(name)
+            open_detail(name, state["category"])
         else:
             messagebox.showinfo(
                 "MythLab",

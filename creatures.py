@@ -1,11 +1,10 @@
+#creature.py
 import tkinter as tk
-from tkinter import messagebox
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps
 
-# Keep using the existing Thunder Dragon detail page.
 from thunder_dragon import show_thunder_dragon
-
+from myth_detail import show_myth_detail, MYTH_CONTENT
 
 # ==========================================
 # COLORS
@@ -20,7 +19,6 @@ GOLD_DARK = "#8a6a2f"
 TEXT = "#f5ead0"
 LIGHT_TEXT = "#9aa0a6"
 ACTIVE_BG = "#1c1a14"
-
 
 # ==========================================
 # IMAGES
@@ -51,7 +49,6 @@ PLACEHOLDERS = {
 
 
 def normalize(text):
-    """Remove spaces, underscores and symbols from a filename."""
     return "".join(ch for ch in text.lower() if ch.isalnum())
 
 
@@ -68,23 +65,19 @@ def all_images():
 
 
 def find_image(filename):
-    """Find an image by name, even if the filename is slightly different."""
     files = all_images()
     base = Path(filename).stem
     target = normalize(base)
 
-    # 1. Exact name
     for item in files:
         if normalize(item.stem) == target:
             return item
 
-    # 2. Similar name
     for item in files:
         stem = normalize(item.stem)
         if stem.startswith(target) or target.startswith(stem):
             return item
 
-    # 3. Alias
     for word in ALIASES.get(base, []):
         for item in files:
             if normalize(word) in normalize(item.stem):
@@ -401,201 +394,89 @@ CREATURE_STORIES = {
 }
 
 
-TYPES = [
-    "All",
-    "Dragons",
-    "Spirits",
-    "Animals",
-    "Other"
-]
+# ==========================================
+# CONNECT CREATURE STORIES TO MYTH DETAIL
+# ==========================================
 
-REGIONS = [
-    "All",
-    "Bhutan",
-    "India",
-    "Asia",
-    "Europe",
-    "Other"
-]
+for creature in creatures:
+    name, tag, creature_type, region, image_file, description = creature
+
+    if name == "The Thunder Dragon":
+        continue
+
+    story_data = CREATURE_STORIES.get(name)
+
+    if story_data:
+        MYTH_CONTENT[name] = {
+            "category": "Creatures",
+            "origin": story_data["origin"],
+            "image": image_file,
+            "subtitle": description,
+            "story": story_data["story"],
+            "facts": [
+                ("Region", region),
+                ("Creature type", tag),
+                ("Powers and abilities", story_data["powers"])
+            ],
+            "note": story_data["significance"]
+        }
+
+
+TYPES = ["All", "Dragons", "Spirits", "Animals", "Other"]
+REGIONS = ["All", "Bhutan", "India", "Asia", "Europe", "Other"]
 
 state = {
     "type": "All",
     "region": "All"
 }
 
-# This set stores favourites only while the app is running.
-# Persistent favourites should be connected to the database separately.
 favourites = set()
 
 
 # ==========================================
-# CREATURE STORY DETAIL WINDOW
+# CLEAR PARENT FRAME
 # ==========================================
 
-def show_creature_story(parent, name):
-    story_data = CREATURE_STORIES.get(name)
+def clear_parent(parent):
+    for widget in parent.winfo_children():
+        widget.destroy()
 
-    if not story_data:
-        messagebox.showinfo(
-            "Creature",
-            "Story is not available yet.",
-            parent=parent.winfo_toplevel()
-        )
+
+# ==========================================
+# CREATURE STORY DETAIL PAGE
+# USES THE SAME LAYOUT AS MYTH DETAILS
+# ==========================================
+
+def show_creature_story(parent, name, back_callback):
+
+    if name not in MYTH_CONTENT:
         return
 
-    window = tk.Toplevel(parent.winfo_toplevel())
-    window.title("MythLab - " + name)
-    window.geometry("900x720")
-    window.minsize(700, 550)
-    window.configure(bg=BG)
+    # Display the existing shared Myth detail page.
+    show_myth_detail(parent, back_callback, name)
 
-    heading = tk.Frame(window, bg=BG)
-    heading.pack(fill="x", padx=35, pady=(25, 15))
+    # Change the back link from "Myths" to "Creatures".
+    # This keeps myth_detail.py unchanged.
+    def update_back_button(widget):
+        for child in widget.winfo_children():
+            if isinstance(child, tk.Button):
+                button_text = child.cget("text").strip()
 
-    tk.Label(
-        heading,
-        text="MYTHLAB  /  CREATURES",
-        font=("Arial", 9, "bold"),
-        bg=BG,
-        fg=GOLD
-    ).pack(anchor="w")
+                if button_text == "←  Myths":
+                    child.config(text="←  Creatures")
 
-    tk.Label(
-        heading,
-        text=name,
-        font=("Georgia", 27, "bold"),
-        bg=BG,
-        fg=GOLD
-    ).pack(anchor="w", pady=(10, 5))
+            update_back_button(child)
 
-    tk.Label(
-        heading,
-        text="Origin: " + story_data["origin"],
-        font=("Arial", 10),
-        bg=BG,
-        fg=LIGHT_TEXT
-    ).pack(anchor="w")
-
-    body = tk.Frame(window, bg=BG)
-    body.pack(fill="both", expand=True, padx=35, pady=10)
-
-    canvas = tk.Canvas(
-        body,
-        bg=BG,
-        highlightthickness=0
-    )
-
-    scrollbar = tk.Scrollbar(
-        body,
-        orient="vertical",
-        command=canvas.yview
-    )
-
-    canvas.configure(yscrollcommand=scrollbar.set)
-    scrollbar.pack(side="right", fill="y")
-    canvas.pack(side="left", fill="both", expand=True)
-
-    story_frame = tk.Frame(canvas, bg=BG)
-
-    story_window = canvas.create_window(
-        (0, 0),
-        window=story_frame,
-        anchor="nw"
-    )
-
-    story_frame.bind(
-        "<Configure>",
-        lambda event: canvas.configure(
-            scrollregion=canvas.bbox("all")
-        )
-    )
-
-    canvas.bind(
-        "<Configure>",
-        lambda event: canvas.itemconfig(
-            story_window,
-            width=event.width
-        )
-    )
-
-    def add_section(title, text):
-        section = tk.Frame(
-            story_frame,
-            bg=CARD,
-            highlightthickness=1,
-            highlightbackground=BORDER
-        )
-
-        section.pack(fill="x", pady=(0, 14))
-
-        tk.Label(
-            section,
-            text=title,
-            font=("Georgia", 15, "bold"),
-            bg=CARD,
-            fg=GOLD
-        ).pack(
-            anchor="w",
-            padx=18,
-            pady=(15, 8)
-        )
-
-        tk.Label(
-            section,
-            text=text,
-            font=("Arial", 11),
-            bg=CARD,
-            fg=TEXT,
-            wraplength=760,
-            justify="left"
-        ).pack(
-            anchor="w",
-            padx=18,
-            pady=(0, 18)
-        )
-
-    add_section(
-        "❖  About the Creature",
-        story_data["introduction"]
-    )
-
-    add_section(
-        "📖  The Legendary Story",
-        story_data["story"]
-    )
-
-    add_section(
-        "✦  Powers and Abilities",
-        story_data["powers"]
-    )
-
-    add_section(
-        "❖  Cultural Significance",
-        story_data["significance"]
-    )
-
-    footer = tk.Frame(window, bg=BG)
-    footer.pack(fill="x", padx=35, pady=18)
-
-    tk.Button(
-        footer,
-        text="← Back to Creatures",
-        font=("Arial", 10, "bold"),
-        bg=GOLD,
-        fg=BG,
-        activebackground=GOLD_DARK,
-        relief="flat",
-        padx=18,
-        pady=9,
-        command=window.destroy
-    ).pack(side="left")
+    update_back_button(parent)
 
 
 # ==========================================
 # MAIN CREATURES PAGE
 # ==========================================
 
-def show_creatures(parent):
+def show_creatures(parent, saved_search=""):
+
+    clear_parent(parent)
 
     # ==========================================
     # MAIN AREA + SCROLLING
@@ -715,11 +596,7 @@ def show_creatures(parent):
     # ==========================================
 
     filters = tk.Frame(content, bg=BG)
-    filters.pack(
-        fill="x",
-        padx=40,
-        pady=(12, 0)
-    )
+    filters.pack(fill="x", padx=40, pady=(12, 0))
 
     search_box = tk.Frame(
         filters,
@@ -740,18 +617,18 @@ def show_creatures(parent):
         search_box,
         font=("Arial", 11),
         bg=CARD,
-        fg=LIGHT_TEXT,
+        fg=TEXT if saved_search else LIGHT_TEXT,
         insertbackground=TEXT,
         relief="flat",
         width=28
     )
-    search_entry.pack(
-        side="left",
-        ipady=7,
-        padx=6
-    )
 
-    search_entry.insert(0, "Search creatures...")
+    search_entry.pack(side="left", ipady=7, padx=6)
+
+    if saved_search:
+        search_entry.insert(0, saved_search)
+    else:
+        search_entry.insert(0, "Search creatures...")
 
     def clear_placeholder(event):
         if search_entry.get() == "Search creatures...":
@@ -770,11 +647,7 @@ def show_creatures(parent):
     type_frame.pack(side="right")
 
     region_row = tk.Frame(content, bg=BG)
-    region_row.pack(
-        fill="x",
-        padx=40,
-        pady=(10, 0)
-    )
+    region_row.pack(fill="x", padx=40, pady=(10, 0))
 
     tk.Label(
         region_row,
@@ -811,10 +684,7 @@ def show_creatures(parent):
                     font=("Arial", 9),
                     bg=BG,
                     fg=LIGHT_TEXT
-                ).pack(
-                    side="left",
-                    padx=(0, 8)
-                )
+                ).pack(side="left", padx=(0, 8))
 
             for option in options:
                 selected = state[key] == option
@@ -842,11 +712,7 @@ def show_creatures(parent):
     # ==========================================
 
     header = tk.Frame(content, bg=BG)
-    header.pack(
-        fill="x",
-        padx=40,
-        pady=(20, 8)
-    )
+    header.pack(fill="x", padx=40, pady=(20, 8))
 
     tk.Label(
         header,
@@ -869,18 +735,10 @@ def show_creatures(parent):
     )
 
     grid = tk.Frame(content, bg=BG)
-    grid.pack(
-        fill="x",
-        padx=36,
-        pady=(0, 30)
-    )
+    grid.pack(fill="x", padx=36, pady=(0, 30))
 
     for col in range(4):
-        grid.columnconfigure(
-            col,
-            weight=1,
-            uniform="card"
-        )
+        grid.columnconfigure(col, weight=1, uniform="card")
 
     CARD_IMG_H = 130
 
@@ -889,13 +747,26 @@ def show_creatures(parent):
     # ==========================================
 
     def read_creature(name):
-        if name == "The Thunder Dragon":
-            show_thunder_dragon(
+        current_search = search_entry.get().strip()
+
+        if current_search == "Search creatures...":
+            current_search = ""
+
+        def back_to_creatures():
+            show_creatures(
                 parent,
-                lambda: show_creatures(parent)
+                saved_search=current_search
             )
+
+        if name == "The Thunder Dragon":
+            clear_parent(parent)
+            show_thunder_dragon(parent, back_to_creatures)
         else:
-            show_creature_story(parent, name)
+            show_creature_story(
+                parent,
+                name,
+                back_to_creatures
+            )
 
     # ==========================================
     # FAVOURITE BUTTON
@@ -904,16 +775,10 @@ def show_creatures(parent):
     def toggle_favourite(name, button):
         if name in favourites:
             favourites.remove(name)
-            button.config(
-                text="♡",
-                fg=LIGHT_TEXT
-            )
+            button.config(text="♡", fg=LIGHT_TEXT)
         else:
             favourites.add(name)
-            button.config(
-                text="♥",
-                fg=GOLD
-            )
+            button.config(text="♥", fg=GOLD)
 
     # ==========================================
     # CREATURE CARD
@@ -952,10 +817,7 @@ def show_creatures(parent):
             pic.last_width = w
             pic.delete("all")
 
-            photo = load_image(
-                image_file,
-                (w, CARD_IMG_H)
-            )
+            photo = load_image(image_file, (w, CARD_IMG_H))
 
             if photo:
                 pic.photo = photo
@@ -972,10 +834,7 @@ def show_creatures(parent):
                 )
 
                 pic.create_rectangle(
-                    0,
-                    0,
-                    w,
-                    CARD_IMG_H,
+                    0, 0, w, CARD_IMG_H,
                     fill=colour,
                     outline=""
                 )
@@ -988,8 +847,7 @@ def show_creatures(parent):
                 )
 
             pic.create_rectangle(
-                8,
-                8,
+                8, 8,
                 8 + 8 * len(tag) + 14,
                 26,
                 fill="#0a0e13",
@@ -1013,10 +871,7 @@ def show_creatures(parent):
             font=("Georgia", 10, "bold"),
             bg=CARD,
             fg=TEXT
-        ).pack(
-            anchor="w",
-            padx=8
-        )
+        ).pack(anchor="w", padx=8)
 
         tk.Label(
             card,
@@ -1026,11 +881,7 @@ def show_creatures(parent):
             fg=LIGHT_TEXT,
             wraplength=175,
             justify="left"
-        ).pack(
-            anchor="w",
-            padx=8,
-            pady=(3, 6)
-        )
+        ).pack(anchor="w", padx=8, pady=(3, 6))
 
         bottom = tk.Frame(card, bg=CARD)
         bottom.pack(
