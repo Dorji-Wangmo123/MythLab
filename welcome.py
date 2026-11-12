@@ -1,1342 +1,934 @@
+
 import tkinter as tk
 from tkinter import messagebox
-import re
-import os
-import sys
-import hashlib
-import sqlite3
-import subprocess
 from pathlib import Path
-
-from PIL import Image, ImageTk
-
-
-# ==========================================
-# MAIN WINDOW
-# ==========================================
-
-root = tk.Tk()
-root.title("MythLab")
-root.geometry("1200x850")
-root.minsize(900, 820)
-root.configure(bg="#071b2b")
+from PIL import Image, ImageTk, ImageOps, ImageDraw
+import sqlite3
+import hashlib
+import hmac
+import os
+import re
+import sys
+import subprocess
 
 
-# ==========================================
-# COLOURS
-# ==========================================
-
-BG = "#071b2b"
-CARD = "#102b3d"
-FIELD = "#0a2030"
-GOLD = "#d6a84f"
-GOLD_LT = "#f3d9a8"
-GOLD_DIM = "#8a6a3a"
-TEXT = "#f5ead0"
-LIGHT_TEXT = "#c7c1b3"
-ERROR = "#ff7b7b"
-OK = "#6fcf97"
-
-
-# ==========================================
-# NEXT PAGE
-# ==========================================
-
-NEXT_PAGE = "main.py"
-
-
-# ==========================================
-# DATABASE
-# ==========================================
+# ============================================================
+# MYTHLAB - WELCOME, LOGIN AND SIGN UP
+# ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
-DB_FILE = BASE_DIR / "mythlab.db"
+ASSETS_DIR = BASE_DIR / "assets"
+DB_PATH = BASE_DIR / "mythlab.db"
 
+NAVY = "#031725"
+CARD = "#031522"
+FIELD = "#061f2d"
+GOLD = "#e9b75d"
+GOLD_LIGHT = "#ffd27c"
+TEXT = "#f6e8cd"
+MUTED = "#c1c5ca"
+ERROR = "#ff8888"
+SUCCESS = "#83d6a0"
+
+
+# ============================================================
+# BACKGROUND IMAGE
+# ============================================================
+
+def find_background():
+    extensions = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+
+    for folder in [ASSETS_DIR, BASE_DIR]:
+        if not folder.exists():
+            continue
+
+        for file in folder.iterdir():
+            if (
+                file.is_file()
+                and file.stem.lower() == "backgr"
+                and file.suffix.lower() in extensions
+            ):
+                return file
+
+    return None
+
+
+# ============================================================
+# DATABASE
+# ============================================================
 
 def get_connection():
-    return sqlite3.connect(DB_FILE)
+    return sqlite3.connect(DB_PATH)
 
 
-# ==========================================
-# PASSWORD HASHING
-# ==========================================
+def init_database():
+    with get_connection() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                full_name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                salt TEXT NOT NULL
+            )
+        """)
 
-def hash_password(password, salt=None):
 
-    salt = salt or os.urandom(16).hex()
+def hash_password(password, salt=None, iterations=200000):
+    if salt is None:
+        salt = os.urandom(16).hex()
 
-    digest = hashlib.pbkdf2_hmac(
+    hashed = hashlib.pbkdf2_hmac(
         "sha256",
-        password.encode(),
+        password.encode("utf-8"),
         bytes.fromhex(salt),
-        100_000
+        iterations
     )
 
-    return salt, digest.hex()
+    return salt, hashed.hex()
 
 
-# ==========================================
-# DATABASE USER FUNCTIONS
-# ==========================================
-
-def get_user_by_username(username):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT id, full_name, email, username, password_hash, salt
-        FROM users
-        WHERE LOWER(username) = LOWER(?)
-    """, (username,))
-
-    user = cursor.fetchone()
-    conn.close()
-    return user
+def get_user(identifier):
+    with get_connection() as conn:
+        return conn.execute("""
+            SELECT id, full_name, email, username,
+                   password_hash, salt
+            FROM users
+            WHERE LOWER(username) = LOWER(?)
+               OR LOWER(email) = LOWER(?)
+        """, (identifier, identifier)).fetchone()
 
 
-def email_exists(email):
-    conn = get_connection()
-    cursor = conn.cursor()
+def register_user(name, email, username, password):
+    salt, hashed = hash_password(password)
 
-    cursor.execute("""
-        SELECT id
-        FROM users
-        WHERE LOWER(email) = LOWER(?)
-    """, (email,))
-
-    result = cursor.fetchone()
-    conn.close()
-    return result is not None
+    with get_connection() as conn:
+        conn.execute("""
+            INSERT INTO users
+            (full_name, email, username, password_hash, salt)
+            VALUES (?, ?, ?, ?, ?)
+        """, (name, email, username, hashed, salt))
 
 
-def username_exists(username):
+# ============================================================
+# VALIDATION FUNCTIONS
+# ============================================================
 
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT id
-        FROM users
-        WHERE LOWER(username) = LOWER(?)
-    """, (username,))
-
-    result = cursor.fetchone()
-
-    conn.close()
-
-    return result is not None
+def validate_name(value):
+    if len(value.strip()) < 2:
+        return "Enter your full name."
+    return ""
 
 
-def create_database_user(
-    full_name,
-    email,
-    username,
-    password_hash,
-    salt
-):
-    conn = get_connection()
-    cursor = conn.cursor()
+def validate_email(value):
+    pattern = r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
 
-    cursor.execute("""
-        INSERT INTO users (
-            full_name,
-            email,
-            username,
-            password_hash,
-            salt
-        )
-        VALUES (?, ?, ?, ?, ?)
-    """, (
-        full_name,
-        email,
-        username,
-        password_hash,
-        salt
-    ))
-
-    conn.commit()
-    conn.close()
-
-# ==========================================
-# VALIDATORS
-# ==========================================
-
-def check_name(v):
-
-    if not v.strip():
-        return "Full name is required."
-
-    if not re.fullmatch(
-        r"[A-Za-z][A-Za-z '\-]{1,48}",
-        v.strip()
-    ):
-        return "Use letters only (at least 2 characters)."
+    if not re.fullmatch(pattern, value):
+        return "Enter a valid email address."
 
     return ""
 
 
-def check_email(v):
-    if not v.strip():
-        return "Email is required."
-
-    if not re.fullmatch(
-        r"[\w.+\-]+@[\w\-]+(\.[\w\-]+)+",
-        v.strip()
-    ):
-        return "Enter a valid email, e.g. name@example.com."
-
-    if email_exists(v.strip()):
-        return "This email is already registered."
+def validate_username(value):
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{2,19}", value):
+        return "3-20 characters; start with a letter. Use letters, numbers or _."
 
     return ""
 
 
-def check_username(v):
+def validate_password(value):
+    missing = []
 
-    if not v.strip():
-        return "Username is required."
+    if len(value) < 8:
+        missing.append("8+ characters")
 
-    if not re.fullmatch(
-        r"[A-Za-z0-9_]{4,15}",
-        v.strip()
-    ):
-        return "4–15 characters: letters, numbers or underscore."
+    if not re.search(r"[A-Z]", value):
+        missing.append("uppercase")
 
-    if username_exists(v.strip()):
-        return "This username is already taken."
+    if not re.search(r"[a-z]", value):
+        missing.append("lowercase")
 
-    return ""
+    if not re.search(r"[0-9]", value):
+        missing.append("number")
 
+    if not re.search(r"[^A-Za-z0-9]", value):
+        missing.append("special character")
 
-def check_password(v):
-
-    if not v:
-        return "Password is required."
-
-    if len(v) < 8:
-        return "Password must be at least 8 characters."
-
-    if not re.search(r"[A-Z]", v):
-        return "Add at least one uppercase letter."
-
-    if not re.search(r"[a-z]", v):
-        return "Add at least one lowercase letter."
-
-    if not re.search(r"\d", v):
-        return "Add at least one number."
-
-    if not re.search(r"[^A-Za-z0-9]", v):
-        return "Add at least one symbol (e.g. ! @ # $)."
+    if missing:
+        return "Add: " + ", ".join(missing)
 
     return ""
 
 
-def check_confirm(v):
+# ============================================================
+# MAIN APPLICATION
+# ============================================================
 
-    if not v:
-        return "Please confirm your password."
+class MythLabApp:
 
-    if v != f_pass.get():
-        return "Passwords do not match."
+    def __init__(self, root):
+        self.root = root
 
-    return ""
+        self.root.title("MythLab | Explore. Learn. Believe.")
+        self.root.geometry("1280x800")
+        self.root.minsize(1000, 720)
+        self.root.configure(bg=NAVY)
 
+        self.screen = "welcome"
+        self.bg_source = None
+        self.bg_photo = None
+        self.resize_job = None
 
-# ==========================================
-# FORM FIELD
-# ==========================================
+        path = find_background()
 
-class FormField:
+        if path:
+            try:
+                self.bg_source = Image.open(path).convert("RGB")
+                print("Background loaded:", path)
+            except Exception as error:
+                print("Background error:", error)
+        else:
+            print("Background not found in:", ASSETS_DIR)
 
-    def __init__(
-        self,
-        parent,
-        label,
-        validator,
-        secret=False,
-        ok_text="✓ Looks good",
-        show_ok=True
-    ):
+        self.root.bind("<Configure>", self.on_resize)
+        self.root.bind("<Return>", self.handle_enter)
 
-        self.validator = validator
-        self.ok_text = ok_text
-        self.show_ok = show_ok
+        self.draw_screen()
 
-        frame = tk.Frame(
-            parent,
-            bg=CARD
+    # ========================================================
+    # BACKGROUND RESIZING - FIXED
+    # ========================================================
+
+    def on_resize(self, event):
+        if event.widget != self.root:
+            return
+
+        if self.resize_job is not None:
+            self.root.after_cancel(self.resize_job)
+
+        self.resize_job = self.root.after(
+            100, self.update_layout
         )
 
-        frame.pack(
-            fill="x",
-            pady=(6, 0)
+    def update_layout(self):
+        self.resize_job = None
+        self.paint_background()
+        self.position_card()
+
+    def paint_background(self):
+        if self.bg_source is None:
+            return
+
+        if not hasattr(self, "bg_label"):
+            return
+
+        w = self.root.winfo_width()
+        h = self.root.winfo_height()
+
+        if w < 10 or h < 10:
+            return
+
+        source = self.bg_source
+
+        if source.width < 1 or source.height < 1:
+            return
+
+        image = ImageOps.fit(
+            source,
+            (w, h),
+            method=Image.Resampling.LANCZOS
         )
+
+        overlay = Image.new(
+            "RGBA",
+            (w, h),
+            (0, 12, 22, 45)
+        )
+
+        image = Image.alpha_composite(
+            image.convert("RGBA"),
+            overlay
+        ).convert("RGB")
+
+        self.bg_photo = ImageTk.PhotoImage(image)
+
+        self.bg_label.configure(image=self.bg_photo)
+        self.bg_label.lower()
+
+    # ========================================================
+    # SCREEN MANAGEMENT
+    # ========================================================
+
+    def clear_screen(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+    def show_screen(self, screen):
+        self.screen = screen
+        self.draw_screen()
+
+    def position_card(self):
+        if not hasattr(self, "card"):
+            return
+
+        w = max(1000, self.root.winfo_width())
+        h = max(720, self.root.winfo_height())
+
+        card_width = 470
+
+        if self.screen == "signup":
+            card_height = 640
+        else:
+            card_height = 590
+
+        x = max(120, int(w * 0.115))
+        y = max(40, (h - card_height) // 2)
+
+        self.card.place(
+            x=x,
+            y=y,
+            width=card_width,
+            height=card_height
+        )
+
+    def draw_screen(self):
+        self.clear_screen()
+
+        self.bg_label = tk.Label(
+            self.root,
+            bg=NAVY,
+            bd=0
+        )
+        self.bg_label.place(
+            x=0, y=0,
+            relwidth=1,
+            relheight=1
+        )
+
+        self.root.after_idle(self.paint_background)
+
+        # Decorative borders
+        tk.Frame(
+            self.root,
+            bg=GOLD,
+            height=2
+        ).place(
+            relx=0.015,
+            rely=0.025,
+            relwidth=0.97
+        )
+
+        tk.Frame(
+            self.root,
+            bg=GOLD,
+            height=2
+        ).place(
+            relx=0.015,
+            rely=0.973,
+            relwidth=0.97
+        )
+
+        # Back arrow
+        if self.screen != "welcome":
+            tk.Button(
+                self.root,
+                text="←",
+                font=("Arial", 25, "bold"),
+                bg=NAVY,
+                fg=GOLD,
+                activebackground=NAVY,
+                activeforeground=GOLD_LIGHT,
+                bd=0,
+                cursor="hand2",
+                command=lambda: self.show_screen("welcome")
+            ).place(
+                relx=0.035,
+                rely=0.07,
+                width=60,
+                height=45
+            )
+
+        self.card = tk.Frame(
+            self.root,
+            bg=CARD,
+            highlightbackground="#9d7841",
+            highlightthickness=1
+        )
+
+        self.position_card()
+
+        body = tk.Frame(self.card, bg=CARD)
+        body.pack(
+            fill="both",
+            expand=True,
+            padx=25,
+            pady=8
+        )
+
+        # Dragon logo
+        tk.Label(
+            body,
+            text="🐉",
+            font=("Segoe UI Emoji", 22),
+            bg=CARD,
+            fg=GOLD
+        ).pack(pady=(0, 0))
 
         tk.Label(
-            frame,
-            text=label,
-            font=("Arial", 10),
+            body,
+            text="MythLab",
+            font=("Georgia", 27, "bold"),
             bg=CARD,
-            fg=LIGHT_TEXT
-        ).pack(anchor="w")
+            fg=GOLD_LIGHT
+        ).pack()
 
-        row = tk.Frame(
-            frame,
-            bg=CARD
+        tk.Label(
+            body,
+            text="Explore. Learn. Believe.",
+            font=("Georgia", 10),
+            bg=CARD,
+            fg=GOLD
+        ).pack(pady=(0, 5))
+
+        tk.Frame(
+            body,
+            bg="#846439",
+            height=1
+        ).pack(fill="x", pady=(0, 8))
+
+        if self.screen == "welcome":
+            self.welcome_page(body)
+
+        elif self.screen == "login":
+            self.login_page(body)
+
+        elif self.screen == "signup":
+            self.signup_page(body)
+
+    # ========================================================
+    # BUTTONS
+    # ========================================================
+
+    def make_button(self, parent, text, command, filled=True):
+        return tk.Button(
+            parent,
+            text=text,
+            command=command,
+            font=("Georgia", 12, "bold"),
+            bg=GOLD if filled else CARD,
+            fg=NAVY if filled else GOLD,
+            activebackground=GOLD_LIGHT,
+            activeforeground=NAVY,
+            cursor="hand2",
+            relief="solid",
+            bd=1,
+            highlightbackground=GOLD
         )
 
-        row.pack(fill="x")
+    # ========================================================
+    # LANDING PAGE
+    # ========================================================
 
-        self.var = tk.StringVar()
+    def welcome_page(self, parent):
+        tk.Label(
+            parent,
+            text="Welcome to MythLab",
+            font=("Arial", 18, "bold"),
+            bg=CARD,
+            fg=TEXT
+        ).pack(pady=(22, 12))
 
-        self.entry = tk.Entry(
-            row,
-            textvariable=self.var,
-            font=("Arial", 12),
+        tk.Label(
+            parent,
+            text=(
+                "Discover Bhutanese myths, legends and stories\n"
+                "through an interactive learning experience."
+            ),
+            font=("Arial", 10),
+            bg=CARD,
+            fg=MUTED,
+            justify="center"
+        ).pack(pady=(0, 30))
+
+        self.make_button(
+            parent,
+            "Login  →",
+            lambda: self.show_screen("login")
+        ).pack(fill="x", ipady=12, pady=8)
+
+        self.make_button(
+            parent,
+            "Create Account",
+            lambda: self.show_screen("signup"),
+            False
+        ).pack(fill="x", ipady=12, pady=8)
+
+        tk.Label(
+            parent,
+            text="──────────  OR  ──────────",
+            bg=CARD,
+            fg=MUTED
+        ).pack(pady=15)
+
+        self.make_button(
+            parent,
+            "Continue as Guest",
+            self.guest,
+            False
+        ).pack(fill="x", ipady=10)
+
+    # ========================================================
+    # INPUT FIELD HELPER
+    # ========================================================
+
+    def create_field(self, parent, title, secret=False):
+        tk.Label(
+            parent,
+            text=title,
+            font=("Arial", 10),
+            bg=CARD,
+            fg=GOLD,
+            anchor="w"
+        ).pack(fill="x", pady=(5, 2))
+
+        entry = tk.Entry(
+            parent,
+            font=("Arial", 11),
             bg=FIELD,
             fg=TEXT,
             insertbackground=GOLD,
-            relief="flat",
-            show="•" if secret else "",
+            relief="solid",
+            bd=1,
             highlightthickness=1,
-            highlightbackground=GOLD_DIM,
-            highlightcolor=GOLD
+            highlightbackground="#9d7841",
+            show="●" if secret else ""
         )
 
-        self.entry.pack(
-            side="left",
-            fill="x",
-            expand=True,
-            ipady=6
+        entry.pack(fill="x", ipady=5)
+
+        return entry
+
+    # ========================================================
+    # LOGIN PAGE
+    # ========================================================
+
+    def login_page(self, parent):
+        tk.Label(
+            parent,
+            text="Login to Continue",
+            font=("Arial", 17, "bold"),
+            bg=CARD,
+            fg=TEXT
+        ).pack(anchor="w", pady=(12, 6))
+
+        tk.Label(
+            parent,
+            text="Welcome back! Enter your details to access MythLab.",
+            font=("Arial", 10),
+            bg=CARD,
+            fg=MUTED
+        ).pack(anchor="w", pady=(0, 12))
+
+        self.l_user = self.create_field(
+            parent, "Username or Email"
         )
 
-        if secret:
+        self.l_pass = self.create_field(
+            parent, "Password", True
+        )
 
-            tk.Button(
-                row,
-                text="👁",
-                font=("Arial", 10),
-                bg=FIELD,
-                fg=GOLD,
-                activebackground=FIELD,
-                activeforeground=GOLD_LT,
-                relief="flat",
-                cursor="hand2",
-                command=self.toggle_show
-            ).pack(
-                side="left",
-                padx=(4, 0),
-                ipady=2
-            )
-
-        self.message = tk.Label(
-            frame,
+        self.login_msg = tk.Label(
+            parent,
             text="",
             font=("Arial", 9),
             bg=CARD,
+            fg=ERROR
+        )
+        self.login_msg.pack(pady=8)
+
+        self.make_button(
+            parent,
+            "Login  →",
+            self.login
+        ).pack(fill="x", ipady=10, pady=10)
+
+        tk.Label(
+            parent,
+            text="──────────  OR  ──────────",
+            bg=CARD,
+            fg=MUTED
+        ).pack(pady=8)
+
+        self.make_button(
+            parent,
+            "Continue as Guest",
+            self.guest,
+            False
+        ).pack(fill="x", ipady=9)
+
+        tk.Button(
+            parent,
+            text="New to MythLab? Create Account",
+            font=("Arial", 10),
+            bg=CARD,
+            fg=GOLD,
+            bd=0,
+            cursor="hand2",
+            command=lambda: self.show_screen("signup")
+        ).pack(pady=12)
+
+    # ========================================================
+    # SIGN UP PAGE
+    # ========================================================
+
+    def signup_page(self, parent):
+        tk.Label(
+            parent,
+            text="Create Your Account",
+            font=("Arial", 15, "bold"),
+            bg=CARD,
+            fg=TEXT
+        ).pack(anchor="w", pady=(0, 2))
+
+        tk.Label(
+            parent,
+            text="Join MythLab and start exploring.",
+            font=("Arial", 9),
+            bg=CARD,
+            fg=MUTED
+        ).pack(anchor="w", pady=(0, 3))
+
+        self.entries = {}
+        self.hints = {}
+
+        self.add_signup_field(parent, "Full Name", "name")
+        self.add_signup_field(parent, "Email Address", "email")
+        self.add_signup_field(parent, "Username", "username")
+        self.add_signup_field(parent, "Password", "password", True)
+        self.add_signup_field(
+            parent, "Confirm Password", "confirm", True
+        )
+
+        self.signup_msg = tk.Label(
+            parent,
+            text="",
+            bg=CARD,
             fg=ERROR,
+            font=("Arial", 9)
+        )
+        self.signup_msg.pack(pady=(2, 0))
+
+        # Always visible inside the card
+        self.make_button(
+            parent,
+            "Create Account  →",
+            self.signup
+        ).pack(
+            fill="x",
+            ipady=7,
+            pady=(3, 3)
+        )
+
+        tk.Button(
+            parent,
+            text="Already have an account? Login",
+            font=("Arial", 9),
+            bg=CARD,
+            fg=GOLD,
+            bd=0,
+            cursor="hand2",
+            command=lambda: self.show_screen("login")
+        ).pack(pady=(1, 0))
+
+    # ========================================================
+    # SIGN UP FIELDS AND LIVE VALIDATION
+    # ========================================================
+
+    def add_signup_field(self, parent, title, key, secret=False):
+        tk.Label(
+            parent,
+            text=title,
+            font=("Arial", 9),
+            bg=CARD,
+            fg=GOLD,
             anchor="w"
+        ).pack(fill="x", pady=(3, 1))
+
+        entry = tk.Entry(
+            parent,
+            font=("Arial", 11),
+            bg=FIELD,
+            fg=TEXT,
+            insertbackground=GOLD,
+            show="●" if secret else "",
+            relief="solid",
+            bd=1,
+            highlightthickness=1,
+            highlightbackground="#9d7841"
         )
 
-        self.message.pack(fill="x")
+        entry.pack(fill="x", ipady=4)
 
-        self.entry.bind(
-            "<FocusOut>",
-            lambda e: self.validate()
+        hint = tk.Label(
+            parent,
+            text="",
+            font=("Arial", 8),
+            bg=CARD,
+            fg=MUTED,
+            anchor="w",
+            height=1
         )
 
-        self.entry.bind(
+        hint.pack(fill="x")
+
+        self.entries[key] = entry
+        self.hints[key] = hint
+
+        entry.bind(
             "<KeyRelease>",
-            self.on_key
+            lambda event, k=key: self.live_validate(k)
         )
 
-    def on_key(self, event):
+        entry.bind(
+            "<FocusOut>",
+            lambda event, k=key: self.live_validate(k)
+        )
 
-        if event.keysym in (
-            "Tab",
-            "ISO_Left_Tab",
-            "Shift_L",
-            "Shift_R"
-        ):
+    def live_validate(self, key):
+        value = self.entries[key].get()
+
+        if not value:
+            self.hints[key].config(text="")
             return
 
-        self.validate()
+        error = ""
 
-    def toggle_show(self):
+        if key == "name":
+            error = validate_name(value)
 
-        self.entry.config(
-            show="" if self.entry.cget("show") else "•"
-        )
+        elif key == "email":
+            error = validate_email(value)
 
-    def get(self):
-        return self.var.get()
+        elif key == "username":
+            error = validate_username(value)
 
-    def clear(self):
+        elif key == "password":
+            error = validate_password(value)
 
-        self.var.set("")
-        self.set_status("")
+        elif key == "confirm":
+            password = self.entries["password"].get()
 
-    def set_status(self, error):
+            if value != password:
+                error = "Passwords do not match."
 
         if error:
-
-            self.message.config(
+            self.hints[key].config(
                 text="✗ " + error,
                 fg=ERROR
             )
-
-            self.entry.config(
-                highlightbackground=ERROR,
-                highlightcolor=ERROR
-            )
-
-        elif self.show_ok and self.get():
-
-            self.message.config(
-                text=self.ok_text,
-                fg=OK
-            )
-
-            self.entry.config(
-                highlightbackground=OK,
-                highlightcolor=OK
-            )
-
         else:
-
-            self.message.config(
-                text="",
-                fg=ERROR
+            self.hints[key].config(
+                text="✓ Looks good",
+                fg=SUCCESS
             )
 
-            self.entry.config(
-                highlightbackground=GOLD_DIM,
-                highlightcolor=GOLD
+        if key == "password":
+            if self.entries["confirm"].get():
+                self.live_validate("confirm")
+
+    # ========================================================
+    # CREATE ACCOUNT
+    # ========================================================
+
+    def signup(self):
+        name = self.entries["name"].get().strip()
+        email = self.entries["email"].get().strip().lower()
+        username = self.entries["username"].get().strip().lower()
+        password = self.entries["password"].get()
+        confirm = self.entries["confirm"].get()
+
+        if not all([name, email, username, password, confirm]):
+            self.signup_msg.config(
+                text="✗ Please fill in all fields."
+            )
+            return
+
+        checks = [
+            ("name", validate_name(name)),
+            ("email", validate_email(email)),
+            ("username", validate_username(username)),
+            ("password", validate_password(password))
+        ]
+
+        if password != confirm:
+            checks.append(
+                ("confirm", "Passwords do not match.")
             )
 
-    def validate(self):
+        for key, error in checks:
+            if error:
+                self.hints[key].config(
+                    text="✗ " + error,
+                    fg=ERROR
+                )
+                self.signup_msg.config(
+                    text="✗ Please correct the highlighted fields."
+                )
+                return
 
-        error = self.validator(
-            self.get()
+        try:
+            register_user(
+                name, email, username, password
+            )
+
+        except sqlite3.IntegrityError:
+            self.signup_msg.config(
+                text="✗ Username or email already registered."
+            )
+            return
+
+        except sqlite3.Error as error:
+            messagebox.showerror(
+                "Database Error",
+                str(error)
+            )
+            return
+
+        messagebox.showinfo(
+            "Account Created Successfully",
+            "Welcome to MythLab, " + name + "!\n\n"
+            "Your account has been created successfully.\n"
+            "Please log in to continue."
         )
 
-        self.set_status(error)
+        self.show_screen("login")
 
-        return error == ""
+    # ========================================================
+    # LOGIN VALIDATION
+    # ========================================================
 
+    def login(self):
+        username = self.l_user.get().strip()
+        password = self.l_pass.get()
 
-# ==========================================
-# SCREEN SWITCHING
-# ==========================================
+        if not username or not password:
+            self.login_msg.config(
+                text="Please enter username and password."
+            )
+            return
 
-def show_screen(screen):
+        try:
+            user = get_user(username)
 
-    for s in (
-        welcome_screen,
-        signup_screen,
-        login_screen
-    ):
-        s.pack_forget()
+        except sqlite3.Error as error:
+            messagebox.showerror(
+                "Database Error",
+                str(error)
+            )
+            return
 
-    screen.pack(
-        fill="both",
-        expand=True
-    )
+        if user is None:
+            self.login_msg.config(
+                text="✗ Incorrect username or password."
+            )
+            return
 
+        user_id, name, email, db_username, stored_hash, salt = user
 
-# ==========================================
-# OPEN HOME
-# ==========================================
+        # Supports accounts created by both the earlier
+        # 100,000-iteration and newer 200,000-iteration versions.
+        try:
+            valid = False
 
-def open_home(username):
+            for iterations in (200000, 100000):
+                _, entered_hash = hash_password(
+                    password, salt, iterations
+                )
 
-    page_file = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        NEXT_PAGE
-    )
+                if hmac.compare_digest(
+                    entered_hash, stored_hash
+                ):
+                    valid = True
+                    break
 
-    if not os.path.exists(page_file):
+        except (ValueError, TypeError):
+            valid = False
 
-        messagebox.showerror(
-            "Page not found",
-            NEXT_PAGE +
-            " was not found in the same folder as welcome.py.\n\n"
-            "Create it, or change NEXT_PAGE at the top of this file."
+        if not valid:
+            self.login_msg.config(
+                text="✗ Incorrect username or password."
+            )
+            return
+
+        messagebox.showinfo(
+            "Login Successful",
+            "Welcome, " + (name or db_username) + "!"
         )
 
-        return
-
-    root.destroy()
-
-    subprocess.Popen([
-        sys.executable,
-        page_file,
-        username
-    ])
-
-
-# ==========================================
-# WELCOME SCREEN
-# ==========================================
-
-welcome_screen = tk.Frame(
-    root,
-    bg=BG
-)
-
-welcome_canvas = tk.Canvas(
-    welcome_screen,
-    bg=BG,
-    highlightthickness=0
-)
-
-welcome_canvas.pack(
-    fill="both",
-    expand=True
-)
-
-
-# ==========================================
-# BACKGROUND IMAGE
-# ==========================================
-
-BACKGROUND_FILE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "assets",
-    "welcome.png"
-)
-
-background_image = None
-
-
-def draw_background():
-
-    global background_image
-
-    w = welcome_canvas.winfo_width()
-    h = welcome_canvas.winfo_height()
-
-    if w < 50 or h < 50:
-        return
-
-    try:
-
-        image = Image.open(
-            BACKGROUND_FILE
-        )
-
-        image = image.resize(
-            (w, h),
-            Image.LANCZOS
-        )
-
-        background_image = ImageTk.PhotoImage(
-            image
-        )
-
-        welcome_canvas.create_image(
-            0,
-            0,
-            image=background_image,
-            anchor="nw",
-            tags="background"
-        )
-
-    except Exception:
-
-        welcome_canvas.create_rectangle(
-            0,
-            0,
-            w,
-            h,
-            fill=BG,
-            outline=""
-        )
-
-
-# ==========================================
-# BUTTON
-# ==========================================
-
-def canvas_button(
-    c,
-    cx,
-    cy,
-    w,
-    h,
-    text,
-    filled,
-    command,
-    tag
-):
-
-    x1 = cx - w / 2
-    y1 = cy - h / 2
-    x2 = cx + w / 2
-    y2 = cy + h / 2
-
-    r = h / 2
-
-    pts = [
-        x1 + r, y1,
-        x2 - r, y1,
-        x2, y1,
-        x2, y2,
-        x2 - r, y2,
-        x1 + r, y2,
-        x1, y2,
-        x1, y1
-    ]
-
-    c.create_polygon(
-        pts,
-        smooth=True,
-        tags=tag,
-        fill=GOLD if filled else "#071b2b",
-        outline=GOLD,
-        width=2
-    )
-
-    c.create_text(
-        cx,
-        cy,
-        text=text,
-        tags=tag,
-        fill="#2b1d05" if filled else GOLD_LT,
-        font=("Georgia", 14)
-    )
-
-    c.tag_bind(
-        tag,
-        "<Enter>",
-        lambda e: c.config(cursor="hand2")
-    )
-
-    c.tag_bind(
-        tag,
-        "<Leave>",
-        lambda e: c.config(cursor="")
-    )
-
-    c.tag_bind(
-        tag,
-        "<Button-1>",
-        lambda e: command()
-    )
-
-
-# ==========================================
-# CORNER DESIGN
-# ==========================================
-
-def corner(c, x, y, sx, sy):
-
-    c.create_line(
-        x,
-        y + sy * 110,
-        x,
-        y,
-        x + sx * 150,
-        y,
-        fill=GOLD,
-        width=1
-    )
-
-    c.create_oval(
-        x + sx * 14,
-        y + sy * 14,
-        x + sx * 54,
-        y + sy * 54,
-        outline=GOLD,
-        width=1
-    )
-
-    c.create_oval(
-        x + sx * 24,
-        y + sy * 24,
-        x + sx * 44,
-        y + sy * 44,
-        outline=GOLD,
-        width=1
-    )
-
-
-# ==========================================
-# DRAW WELCOME
-# ==========================================
-
-def draw_welcome(event=None):
-
-    c = welcome_canvas
-
-    c.delete("all")
-
-    w = c.winfo_width()
-    h = c.winfo_height()
-
-    if w < 50:
-        return
-
-    cx = w / 2
-
-    # BACKGROUND IMAGE
-
-    draw_background()
-
-    # DARK OVERLAY
-
-    c.create_rectangle(
-        0,
-        0,
-        w,
-        h,
-        fill="#071b2b",
-        stipple="gray50",
-        outline=""
-    )
-
-    # DECORATION
-
-    corner(c, 14, 22, 1, 1)
-    corner(c, w - 14, 22, -1, 1)
-
-    corner(c, 14, h - 22, 1, -1)
-    corner(c, w - 14, h - 22, -1, -1)
-
-    for y in (22, h - 22):
-
-        c.create_line(
-            cx - 140,
-            y,
-            cx - 22,
-            y,
-            fill=GOLD_DIM
-        )
-
-        c.create_line(
-            cx + 22,
-            y,
-            cx + 140,
-            y,
-            fill=GOLD_DIM
-        )
-
-        c.create_text(
-            cx,
-            y,
-            text="❖",
-            fill=GOLD,
-            font=("Arial", 16)
-        )
-
-    # MAIN CONTENT
-
-    c.create_text(
-        cx,
-        h * .26,
-        text="🐉",
-        fill=GOLD,
-        font=("Arial", 54)
-    )
-
-    c.create_text(
-        cx,
-        h * .39,
-        text="MythLab",
-        fill=GOLD,
-        font=("Georgia", 52)
-    )
-
-    c.create_text(
-        cx,
-        h * .48,
-        text="Explore. Learn. Believe.",
-        fill=GOLD_LT,
-        font=("Georgia", 17)
-    )
-
-    c.create_line(
-        cx - 160,
-        h * .53,
-        cx - 18,
-        h * .53,
-        fill=GOLD_DIM
-    )
-
-    c.create_line(
-        cx + 18,
-        h * .53,
-        cx + 160,
-        h * .53,
-        fill=GOLD_DIM
-    )
-
-    c.create_text(
-        cx,
-        h * .53,
-        text="❖",
-        fill=GOLD,
-        font=("Arial", 12)
-    )
-
-    c.create_text(
-        cx,
-        h * .60,
-        text="Discover the myths, legends and mythical\n"
-             "creatures of Bhutan and beyond.",
-        fill=TEXT,
-        font=("Georgia", 13),
-        justify="center"
-    )
-
-    # BUTTONS
-
-    canvas_button(
-        c,
-        cx,
-        h * .72,
-        280,
-        56,
-        "Get Started  →",
-        True,
-        lambda: show_screen(signup_screen),
-        "btn_start"
-    )
-
-    canvas_button(
-        c,
-        cx,
-        h * .80,
-        280,
-        46,
-        "Login",
-        False,
-        lambda: show_screen(login_screen),
-        "btn_login"
-    )
-
-
-welcome_canvas.bind(
-    "<Configure>",
-    draw_welcome
-)
-
-
-# ==========================================
-# FORM CARD BUILDER
-# ==========================================
-
-def build_form_screen(title, subtitle):
-
-    screen = tk.Frame(
-        root,
-        bg=BG
-    )
-
-    card = tk.Frame(
-        screen,
-        bg=CARD,
-        highlightthickness=1,
-        highlightbackground=GOLD
-    )
-
-    card.place(
-        relx=0.5,
-        rely=0.5,
-        anchor="center"
-    )
-
-    inner = tk.Frame(
-        card,
-        bg=CARD
-    )
-
-    inner.pack(
-        padx=45,
-        pady=24
-    )
-
-    tk.Label(
-        inner,
-        text="🐉",
-        font=("Arial", 26),
-        bg=CARD,
-        fg=GOLD
-    ).pack()
-
-    tk.Label(
-        inner,
-        text=title,
-        font=("Georgia", 22),
-        bg=CARD,
-        fg=GOLD_LT
-    ).pack()
-
-    tk.Label(
-        inner,
-        text=subtitle,
-        font=("Arial", 10),
-        bg=CARD,
-        fg=LIGHT_TEXT
-    ).pack(
-        pady=(0, 6)
-    )
-
-    body = tk.Frame(
-        inner,
-        bg=CARD,
-        width=360
-    )
-
-    body.pack(
-        fill="x"
-    )
-
-    return screen, inner, body
-
-
-# ==========================================
-# BUTTONS
-# ==========================================
-
-def gold_button(parent, text, command):
-
-    return tk.Button(
-        parent,
-        text=text,
-        font=("Arial", 12, "bold"),
-        bg=GOLD,
-        fg="#2b1d05",
-        activebackground=GOLD_LT,
-        relief="flat",
-        cursor="hand2",
-        pady=8,
-        command=command
-    )
-
-
-def link_button(parent, text, command):
-
-    return tk.Button(
-        parent,
-        text=text,
-        font=("Arial", 10, "underline"),
-        bg=CARD,
-        fg=GOLD,
-        activebackground=CARD,
-        activeforeground=GOLD_LT,
-        relief="flat",
-        cursor="hand2",
-        command=command
-    )
-
-
-# ==========================================
-# CREATE ACCOUNT
-# ==========================================
-
-signup_screen, signup_inner, signup_body = build_form_screen(
-    "Create Account",
-    "Join MythLab and start exploring."
-)
-
-
-f_name = FormField(
-    signup_body,
-    "Full name",
-    check_name,
-    ok_text="✓ Nice to meet you!"
-)
-
-
-f_email = FormField(
-    signup_body,
-    "Email",
-    check_email,
-    ok_text="✓ Email looks good"
-)
-
-
-f_user = FormField(
-    signup_body,
-    "Username",
-    check_username,
-    ok_text="✓ Username is available"
-)
-
-
-f_pass = FormField(
-    signup_body,
-    "Password",
-    check_password,
-    secret=True,
-    ok_text="✓ Strong password"
-)
-
-
-f_confirm = FormField(
-    signup_body,
-    "Confirm password",
-    check_confirm,
-    secret=True,
-    ok_text="✓ Passwords match"
-)
-
-
-f_pass.entry.bind(
-    "<KeyRelease>",
-    lambda e: (
-        f_pass.on_key(e),
-        f_confirm.validate() if f_confirm.get() else None
-    )
-)
-
-
-# ==========================================
-# TERMS
-# ==========================================
-
-terms_var = tk.IntVar()
-
-terms_msg = tk.Label(
-    signup_body,
-    text="",
-    font=("Arial", 9),
-    bg=CARD,
-    fg=ERROR,
-    anchor="w"
-)
-
-
-def terms_changed():
-
-    if terms_var.get():
-
-        terms_msg.config(
-            text="✓ Thanks for agreeing",
-            fg=OK
-        )
-
-    else:
-
-        terms_msg.config(
-            text="✗ You must agree to the Terms of Use.",
-            fg=ERROR
-        )
-
-
-tk.Checkbutton(
-    signup_body,
-    text="I agree to the Terms of Use",
-    variable=terms_var,
-    font=("Arial", 10),
-    bg=CARD,
-    fg=TEXT,
-    selectcolor=FIELD,
-    activebackground=CARD,
-    activeforeground=GOLD,
-    command=terms_changed
-).pack(
-    anchor="w",
-    pady=(10, 0)
-)
-
-terms_msg.pack(
-    fill="x"
-)
-
-
-# ==========================================
-# CREATE ACCOUNT
-# ==========================================
-
-def create_account():
-
-    results = [
-        f.validate()
-        for f in (
-            f_name,
-            f_email,
-            f_user,
-            f_pass,
-            f_confirm
-        )
-    ]
-
-    if not terms_var.get():
-
-        terms_changed()
-        results.append(False)
-
-    if not all(results):
-
-        messagebox.showerror(
-            "Create Account",
-            "Please fix the fields marked in red."
-        )
-
-        return
-
-    username = f_user.get().strip().lower()
-
-    salt, hashed = hash_password(
-        f_pass.get()
-    )
-
-    try:
-
-        create_database_user(
-            f_name.get().strip(),
-            f_email.get().strip().lower(),
-            username,
-            hashed,
-            salt
-        )
-
-    except sqlite3.IntegrityError:
-
-        messagebox.showerror(
-            "Create Account",
-            "This username is already registered."
-        )
-
-        return
-
-    except sqlite3.Error as e:
-
-        messagebox.showerror(
-            "Database Error",
-            "Could not create your account.\n\n" + str(e)
-        )
-
-        return
-
-    messagebox.showinfo(
-        "Account created",
-        "Welcome to MythLab " +
-        f_name.get().strip().split()[0] +
-        "!\nYou can now log in."
-    )
-
-    for f in (
-        f_name,
-        f_email,
-        f_user,
-        f_pass,
-        f_confirm
-    ):
-        f.clear()
-
-    terms_var.set(0)
-    terms_msg.config(text="")
-
-    show_screen(login_screen)
-
-
-gold_button(
-    signup_body,
-    "Create Account",
-    create_account
-).pack(
-    fill="x",
-    pady=(8, 4)
-)
-
-
-bottom = tk.Frame(
-    signup_body,
-    bg=CARD
-)
-
-bottom.pack()
-
-
-tk.Label(
-    bottom,
-    text="Already have an account?",
-    font=("Arial", 10),
-    bg=CARD,
-    fg=LIGHT_TEXT
-).pack(side="left")
-
-
-link_button(
-    bottom,
-    "Login",
-    lambda: show_screen(login_screen)
-).pack(side="left")
-
-
-link_button(
-    signup_body,
-    "← Back",
-    lambda: show_screen(welcome_screen)
-).pack()
-
-
-# ==========================================
-# LOGIN SCREEN
-# ==========================================
-
-login_screen, login_inner, login_body = build_form_screen(
-    "Welcome Back",
-    "Log in to continue your journey."
-)
-
-
-l_user = FormField(
-    login_body,
-    "Username",
-    lambda v: "" if v.strip()
-    else "Username is required.",
-    show_ok=False
-)
-
-
-l_pass = FormField(
-    login_body,
-    "Password",
-    lambda v: "" if v
-    else "Password is required.",
-    secret=True,
-    show_ok=False
-)
-
-
-login_msg = tk.Label(
-    login_body,
-    text="",
-    font=("Arial", 10),
-    bg=CARD,
-    fg=ERROR
-)
-
-login_msg.pack(
-    pady=(6, 0)
-)
-
-
-# ==========================================
-# LOGIN
-# ==========================================
-
-def login():
-
-    login_msg.config(text="")
-
-    ok_user = l_user.validate()
-    ok_pass = l_pass.validate()
-
-    if not (ok_user and ok_pass):
-        return
-
-    username = l_user.get().strip().lower()
-
-    user = get_user_by_username(username)
-
-    if user is None:
-
-        login_msg.config(
-            text="✗ Incorrect username or password.",
-            fg=ERROR
-        )
-
-        return
-
-    user_id, full_name, db_email, db_username, stored_hash, salt = user
-
-    _, hashed = hash_password(
-        l_pass.get(),
-        salt
-    )
-
-    if hashed != stored_hash:
-
-        login_msg.config(
-            text="✗ Incorrect username or password.",
-            fg=ERROR
-        )
-
-        return
-
-    login_msg.config(
-        text="✓ Login successful!",
-        fg=OK
-    )
-
-    messagebox.showinfo(
-        "Login",
-        "Welcome, " + (full_name or db_username) + "!"
-    )
-
-    l_user.clear()
-    l_pass.clear()
-
-    login_msg.config(text="")
-
-    open_home(username)
-
-
-gold_button(
-    login_body,
-    "Login",
-    login
-).pack(
-    fill="x",
-    pady=(8, 4)
-)
-
-
-bottom2 = tk.Frame(
-    login_body,
-    bg=CARD
-)
-
-bottom2.pack()
-
-
-tk.Label(
-    bottom2,
-    text="New to MythLab?",
-    font=("Arial", 10),
-    bg=CARD,
-    fg=LIGHT_TEXT
-).pack(side="left")
-
-
-link_button(
-    bottom2,
-    "Create account",
-    lambda: show_screen(signup_screen)
-).pack(side="left")
-
-
-link_button(
-    login_body,
-    "← Back",
-    lambda: show_screen(welcome_screen)
-).pack()
-
-
-# ==========================================
-# ENTER KEY
-# ==========================================
-
-root.bind(
-    "<Return>",
-    lambda e:
-    login()
-    if login_screen.winfo_ismapped()
-    else create_account()
-    if signup_screen.winfo_ismapped()
-    else None
-)
-
-
-# ==========================================
-# RUN
-# ==========================================
-
-show_screen(welcome_screen)
-
-root.mainloop()
+        self.open_home(db_username)
+
+    # ========================================================
+    # GUEST ACCESS
+    # ========================================================
+
+    def guest(self):
+        self.open_home(None)
+
+    # ========================================================
+    # OPEN MAIN MYTHLAB APPLICATION
+    # ========================================================
+
+    def open_home(self, username):
+        main_file = BASE_DIR / "main.py"
+
+        if not main_file.exists():
+            messagebox.showwarning(
+                "Main Application",
+                "Your account is ready, but the MythLab dashboard "
+                "file main.py was not found.\n\n"
+                "Please connect your actual dashboard main.py."
+            )
+            return
+
+        try:
+            subprocess.Popen(
+                [
+                    sys.executable,
+                    str(main_file),
+                    username or ""
+                ],
+                cwd=str(BASE_DIR)
+            )
+
+            self.root.destroy()
+
+        except OSError as error:
+            messagebox.showerror(
+                "Unable to Open MythLab",
+                str(error)
+            )
+
+    # ========================================================
+    # ENTER KEY EVENT HANDLING
+    # ========================================================
+
+    def handle_enter(self, event=None):
+        if self.screen == "login":
+            self.login()
+
+        elif self.screen == "signup":
+            self.signup()
+
+
+# ============================================================
+# RUN APPLICATION
+# ============================================================
+
+if __name__ == "__main__":
+    init_database()
+
+    root = tk.Tk()
+    app = MythLabApp(root)
+
+    root.mainloop()
