@@ -1,19 +1,15 @@
 
-# myth_detail.py
-# MYTHLAB - SHARED STORY DETAIL PAGE
-
 import tkinter as tk
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps
-
+import customtkinter as ctk
 
 # ============================================================
-# COLOURS
+# MYTHLAB - SHARED MYTH DETAIL PAGE
 # ============================================================
 
 BG = "#061b2b"
 CARD = "#0a2131"
-CARD2 = "#102b3d"
 GOLD = "#d6a84f"
 LIGHT_GOLD = "#e5c875"
 TEXT = "#f5ead0"
@@ -25,1108 +21,650 @@ IMAGE_DIR = PROJECT_DIR / "assets"
 
 _image_refs = []
 
-
 # ============================================================
 # MYTH CONTENT
+# Add or edit stories here.
+# Creature stories are added by creature.py.
 # ============================================================
 
 MYTH_CONTENT = {
 
     "Ap Chhundu": {
-        "id": "MYT-001",
         "category": "Deity",
         "origin": "Haa Valley, Bhutan",
-        "image": "ap_chhundu.png",
+        "image": "ap_chhundu.jpg",
         "subtitle": "The protective guardian deity of Haa Valley.",
-        "overview": (
-            "Ap Chhundu is one of the most respected guardian "
-            "deities associated with Haa Valley in western Bhutan. "
-            "He is traditionally regarded as a powerful protector "
-            "of the valley and its people."
-        ),
         "story": (
-            "In the beautiful Haa Valley, surrounded by mountains "
-            "and forests, local communities have long maintained "
-            "a deep respect for Ap Chhundu.\n\n"
-            "According to local beliefs, Ap Chhundu watches over "
-            "the land and the people who live there. Families "
-            "have traditionally offered prayers seeking protection, "
-            "peace and well-being.\n\n"
-            "The stories associated with Ap Chhundu reflect the "
-            "relationship between local communities, their "
-            "guardian deities and the natural environment."
-        ),
-        "cultural_significance": (
-            "Ap Chhundu holds an important place in the spiritual "
-            "and cultural identity of Haa Valley. Traditions "
-            "associated with guardian deities help preserve "
-            "local beliefs and community heritage."
+            "Ap Chhundu is widely revered as a guardian deity of Haa "
+            "Valley in Bhutan. Local traditions describe him as a "
+            "powerful protector who watches over the valley and its "
+            "people.\n\n"
+            "People have traditionally prayed to Ap Chhundu for "
+            "protection, well-being, and peace. His presence is closely "
+            "connected with the cultural and spiritual identity of Haa."
         ),
         "facts": [
             ("Origin", "Haa Valley, Bhutan"),
             ("Type", "Guardian deity"),
             ("Role", "Protector of the valley")
-        ]
+        ],
+        "note": (
+            "Ap Chhundu reflects the importance of local guardian "
+            "deities in Bhutanese culture and community traditions."
+        )
     },
 
     "Ap Genyen Domtshang": {
-        "id": "MYT-002",
         "category": "Deity",
         "origin": "Bhutan",
-        "image": "ap_genyen_domtshang.png",
-        "subtitle": "A guardian deity in Bhutanese tradition.",
-        "overview": (
-            "Ap Genyen Domtshang is associated with local "
-            "Bhutanese traditions concerning protective deities."
-        ),
+        "image": "ap_genyen_domtshang.jpg",
+        "subtitle": "A guardian spirit associated with Bhutanese tradition.",
         "story": (
-            "In Bhutan, stories of guardian deities have been "
-            "shared through families and communities for "
-            "generations.\n\n"
-            "Ap Genyen Domtshang is remembered as a protective "
-            "spiritual figure. Like other guardian deities, "
-            "he is associated with the well-being of particular "
-            "places and their inhabitants.\n\n"
-            "These traditions remind people of the importance "
-            "of respecting sacred places and maintaining "
-            "harmony within their communities."
-        ),
-        "cultural_significance": (
-            "The tradition reflects the close relationship "
-            "between spiritual beliefs, local communities "
-            "and the Bhutanese landscape."
+            "Ap Genyen Domtshang is remembered in Bhutanese local "
+            "traditions as a protective spiritual figure. Stories "
+            "about guardian deities are often passed down through "
+            "families and communities.\n\n"
+            "Such figures are traditionally respected because they "
+            "are believed to protect particular places and the people "
+            "who live there."
         ),
         "facts": [
             ("Origin", "Bhutan"),
-            ("Type", "Guardian deity"),
+            ("Type", "Guardian spirit"),
             ("Role", "Protection and guidance")
-        ]
+        ],
+        "note": (
+            "The tradition reflects the close relationship between "
+            "spiritual beliefs, local communities, and the landscape."
+        )
     },
 
     "Jomo": {
-        "id": "MYT-003",
         "category": "Deity",
-        "origin": "Bhutan and the Himalayas",
-        "image": "jomo.png",
-        "subtitle": "A sacred female mountain deity.",
-        "overview": (
-            "Jomo is associated with female protective deities "
-            "and sacred mountains in Bhutanese and Himalayan "
-            "traditions."
-        ),
+        "origin": "Bhutan and Himalayan region",
+        "image": "jomo.jpg",
+        "subtitle": "A sacred female mountain deity in Himalayan traditions.",
         "story": (
-            "High in the Himalayan mountains, many peaks are "
-            "regarded as sacred places.\n\n"
-            "Traditional beliefs associate certain mountains "
-            "with powerful spiritual beings. Jomo is one "
-            "of the names connected with female mountain "
-            "deities.\n\n"
-            "Communities living near sacred mountains have "
-            "traditionally shown respect through prayers "
-            "and local customs. Such beliefs connect "
-            "the natural landscape with the spiritual world."
-        ),
-        "cultural_significance": (
-            "Jomo traditions highlight the importance of "
-            "mountains in Himalayan spirituality and the "
-            "respect shown towards sacred landscapes."
-        ),
-        "facts": [
-            ("Region", "Bhutan and the Himalayas"),
-            ("Type", "Mountain deity"),
-            ("Association", "Sacred mountains")
-        ]
-    },
-
-    "Jomo (Aum Jomo)": {
-        "id": "MYT-003",
-        "category": "Deity",
-        "origin": "Bhutan",
-        "image": "jomo.png",
-        "subtitle": "The sacred mountain goddess associated with Jomolhari.",
-        "overview": (
-            "Aum Jomo is associated with sacred mountain "
-            "traditions in the Himalayan region."
-        ),
-        "story": (
-            "Mount Jomolhari rises above the landscape "
-            "of western Bhutan.\n\n"
-            "In local spiritual traditions, sacred mountains "
-            "are associated with protective deities and "
-            "are treated with great respect.\n\n"
-            "Stories about Aum Jomo reflect the belief "
-            "that mountains are more than physical "
-            "landmarks. They are also places of "
-            "spiritual and cultural importance."
-        ),
-        "cultural_significance": (
-            "The traditions surrounding Aum Jomo express "
-            "respect for sacred mountains and the "
+            "Jomo is a name associated with female protective deities "
+            "in Bhutanese and Himalayan traditions. Some mountains "
+            "are regarded as sacred places and are believed to be "
+            "the homes of powerful spiritual beings.\n\n"
+            "People living near these mountains may show respect "
+            "through prayers, offerings, and local religious customs. "
+            "These beliefs connect the spiritual world with the "
             "natural environment."
         ),
         "facts": [
-            ("Region", "Western Bhutan"),
+            ("Region", "Bhutan and Himalayan region"),
             ("Type", "Mountain deity"),
-            ("Association", "Mount Jomolhari")
-        ]
+            ("Association", "Sacred mountains and protection")
+        ],
+        "note": (
+            "Jomo traditions show how mountains are respected not "
+            "only as natural landmarks but also as sacred places."
+        )
     },
 
     "Guru Rinpoche": {
-        "id": "MYT-004",
         "category": "Religious Figure",
         "origin": "India and Bhutan",
-        "image": "guru_rinpoche.png",
-        "subtitle": "The great Buddhist master Padmasambhava.",
-        "overview": (
-            "Guru Rinpoche, also known as Padmasambhava, "
-            "is one of the most important figures "
-            "in Bhutanese Buddhist tradition."
-        ),
+        "image": "guru.jpg",
+        "subtitle": "The great Buddhist master who brought Vajrayana Buddhism to Bhutan.",
         "story": (
-            "According to Buddhist religious accounts, "
-            "Guru Rinpoche travelled to Bhutan during "
-            "the eighth century.\n\n"
-            "He is traditionally credited with helping "
-            "establish Vajrayana Buddhist teachings "
-            "throughout the Himalayan region.\n\n"
-            "One of the most famous accounts connects "
-            "Guru Rinpoche with Paro Taktsang, "
-            "the Tiger's Nest.\n\n"
-            "Tradition holds that he meditated at "
-            "this sacred location and subdued harmful "
-            "spiritual forces.\n\n"
-            "His teachings and associated stories "
-            "continue to influence Bhutanese "
-            "religious life and culture."
-        ),
-        "cultural_significance": (
-            "Guru Rinpoche occupies a central place "
-            "in Bhutanese Buddhism, religious festivals, "
-            "sacred art and pilgrimage traditions."
+            "Guru Rinpoche, also known as Padmasambhava, is one of "
+            "the most important figures in Bhutanese Buddhist "
+            "tradition. According to religious accounts, he travelled "
+            "to Bhutan in the eighth century and helped establish "
+            "Buddhism in the region.\n\n"
+            "One of the best-known traditions tells of his meditation "
+            "at Paro Taktsang, also known as the Tiger's Nest. He is "
+            "believed to have subdued harmful forces and helped spread "
+            "Buddhist teachings throughout the Himalayan region."
         ),
         "facts": [
-            ("Other name", "Padmasambhava"),
-            ("Period", "Traditionally the 8th century"),
-            ("Importance", "Vajrayana Buddhism")
-        ]
+            ("Name", "Padmasambhava"),
+            ("Period", "Traditionally associated with the 8th century"),
+            ("Importance", "Spread of Vajrayana Buddhism")
+        ],
+        "note": (
+            "Guru Rinpoche holds a central place in Bhutanese "
+            "religious life, festivals, art, and cultural heritage."
+        )
     },
 
     "Yeshey Gonpo": {
-        "id": "MYT-005",
         "category": "Deity",
         "origin": "Bhutan and Tibetan Buddhist tradition",
-        "image": "yeshey_gonpo.png",
-        "subtitle": "A powerful Buddhist protective deity.",
-        "overview": (
-            "Yeshey Gonpo is associated with Mahakala, "
-            "a protective deity in Vajrayana Buddhism."
-        ),
+        "image": "yeshey_gonpo.jpg",
+        "subtitle": "A powerful protective deity also known as Mahakala.",
         "story": (
-            "In Vajrayana Buddhist traditions, "
-            "protective deities are associated "
-            "with overcoming obstacles and "
-            "protecting Buddhist teachings.\n\n"
-            "Yeshey Gonpo is commonly represented "
-            "with a fierce appearance. This "
-            "symbolises protective spiritual power "
-            "rather than ordinary anger.\n\n"
-            "In Bhutan, protective deities are "
-            "honoured through religious ceremonies, "
-            "prayers and traditional rituals."
-        ),
-        "cultural_significance": (
-            "Yeshey Gonpo represents spiritual "
-            "protection and the overcoming "
-            "of obstacles in Buddhist practice."
+            "Yeshey Gonpo is associated with Mahakala, a protective "
+            "deity in Vajrayana Buddhism. He is often represented "
+            "with a fierce appearance to symbolize the power to "
+            "overcome obstacles and protect Buddhist teachings.\n\n"
+            "In Bhutan, protective deities have an important place "
+            "in religious practices. They are honoured through "
+            "prayers, rituals, and religious ceremonies."
         ),
         "facts": [
             ("Other name", "Mahakala"),
             ("Type", "Protective deity"),
             ("Association", "Protection of Buddhist teachings")
-        ]
+        ],
+        "note": (
+            "Yeshey Gonpo represents spiritual protection and the "
+            "overcoming of obstacles."
+        )
     },
 
     "Drukpa Kunley": {
-        "id": "MYT-006",
-        "category": "Hero",
+        "category": "Historical Religious Figure",
         "origin": "Tibet and Bhutan",
-        "image": "drukpa_kuenley.png",
-        "subtitle": "The Divine Madman.",
-        "overview": (
-            "Drukpa Kunley was a Buddhist teacher "
-            "remembered for his humour and "
-            "unconventional methods of teaching."
-        ),
+        "image": "drukpa_kuenley.jpg",
+        "subtitle": "The Divine Madman known for his unusual teaching methods.",
         "story": (
-            "Drukpa Kunley, popularly known as "
-            "the Divine Madman, is remembered "
-            "in many Bhutanese stories.\n\n"
-            "Unlike conventional religious teachers, "
-            "he often used humour and surprising "
-            "situations to communicate spiritual "
-            "lessons.\n\n"
-            "Stories associated with him encourage "
-            "listeners to question pride, "
-            "pretence and attachment.\n\n"
-            "His unusual approach made him "
-            "one of the most memorable figures "
-            "in Bhutanese religious folklore."
-        ),
-        "cultural_significance": (
-            "Drukpa Kunley's stories remain "
-            "important in Bhutanese folklore "
-            "and religious traditions."
+            "Drukpa Kunley, popularly known as the Divine Madman, "
+            "was a Buddhist teacher whose life became part of many "
+            "stories in Bhutan.\n\n"
+            "Unlike conventional religious teachers, he was known "
+            "for his unconventional behaviour, humour, and unusual "
+            "ways of sharing spiritual lessons. Many stories about "
+            "him use jokes and surprising situations to communicate "
+            "ideas about wisdom, pride, and human behaviour."
         ),
         "facts": [
             ("Known as", "The Divine Madman"),
             ("Region", "Tibet and Bhutan"),
-            ("Known for", "Humour and unconventional teachings")
-        ]
+            ("Known for", "Unconventional teachings and humour")
+        ],
+        "note": (
+            "His stories remain an important part of Bhutanese "
+            "folklore and are often used to share moral and spiritual lessons."
+        )
+    },
+
+    "The Black Mountain": {
+        "category": "Legend",
+        "origin": "Central Bhutan",
+        "image": "black_mountain (2).png",
+        "subtitle": "A legendary mountain landscape associated with mystery and local beliefs.",
+        "story": (
+            "The Black Mountains are an important part of Bhutan's "
+            "central landscape. Mountains in Bhutan are often linked "
+            "with local legends, sacred places, and spiritual beliefs.\n\n"
+            "Stories connected with mountain areas reflect the "
+            "mystery of the natural world and the respect people "
+            "have traditionally shown towards the environment."
+        ),
+        "facts": [
+            ("Location", "Central Bhutan"),
+            ("Type", "Landscape legend"),
+            ("Association", "Mountains and local traditions")
+        ],
+        "note": (
+            "The story highlights the cultural importance of "
+            "Bhutan's mountains and the traditions connected to them."
+        )
+    },
+
+    "Paro Taktsang": {
+        "category": "Sacred Legend",
+        "origin": "Paro, Bhutan",
+        "image": "paro_taktsang.png",
+        "subtitle": "The sacred Tiger's Nest monastery built on a cliff.",
+        "story": (
+            "Paro Taktsang, popularly known as the Tiger's Nest, "
+            "is one of Bhutan's most famous sacred sites. According "
+            "to tradition, Guru Rinpoche travelled to this location "
+            "on the back of a tigress.\n\n"
+            "He is believed to have meditated in a cave there and "
+            "helped subdue harmful spiritual forces. The monastery "
+            "was later built around the sacred site and became "
+            "an important place of pilgrimage."
+        ),
+        "facts": [
+            ("Location", "Paro, Bhutan"),
+            ("Also known as", "Tiger's Nest"),
+            ("Association", "Guru Rinpoche")
+        ],
+        "note": (
+            "Paro Taktsang is one of Bhutan's most treasured "
+            "religious and cultural landmarks."
+        )
+    },
+
+    "Dochula": {
+        "category": "Historical and Cultural Legend",
+        "origin": "Dochula Pass, Bhutan",
+        "image": "dochula.jpg",
+        "subtitle": "A mountain pass known for its 108 memorial chortens.",
+        "story": (
+            "Dochula Pass is a well-known mountain pass between "
+            "Thimphu and Punakha. It is especially recognised for "
+            "the 108 Druk Wangyal Chortens built on the hillside.\n\n"
+            "The site is a place of remembrance and reflection. "
+            "Surrounded by mountain scenery, it has become an "
+            "important landmark for visitors and local people."
+        ),
+        "facts": [
+            ("Location", "Dochula Pass, Bhutan"),
+            ("Known for", "108 Druk Wangyal Chortens"),
+            ("Type", "Cultural landmark")
+        ],
+        "note": (
+            "Dochula represents remembrance, national identity, "
+            "and Bhutan's cultural heritage."
+        )
+    },
+
+    "Tshomen Lu": {
+        "category": "Water Spirit",
+        "origin": "Bhutan and Himalayan folklore",
+        "image": "tshomen_lu.jpg",
+        "subtitle": "A supernatural water being from Himalayan traditions.",
+        "story": (
+            "In Bhutanese and Himalayan folklore, Lu are supernatural "
+            "beings associated with water, lakes, rivers, and the "
+            "natural environment. Tshomen is commonly associated "
+            "with female water spirits.\n\n"
+            "Traditional stories describe these beings as powerful "
+            "and deserving of respect. People have often connected "
+            "water spirits with the protection and balance of "
+            "natural water sources."
+        ),
+        "facts": [
+            ("Region", "Bhutan and Himalayan region"),
+            ("Type", "Water spirit"),
+            ("Association", "Lakes, rivers, and water")
+        ],
+        "note": (
+            "These stories encourage respect for water and the "
+            "natural environment."
+        )
     },
 
     "The Thunder Dragon": {
-        "id": "MYT-007",
-        "category": "Creature",
+        "category": "National Symbol",
         "origin": "Bhutan",
         "image": "thunder_dragon.png",
-        "subtitle": "The legendary Druk of Bhutan.",
-        "overview": (
-            "The Thunder Dragon, known as Druk, "
-            "is one of Bhutan's most important "
-            "national and cultural symbols."
-        ),
+        "subtitle": "The Druk, the legendary Thunder Dragon of Bhutan.",
         "story": (
-            "High above the mountains of Bhutan, "
-            "thunderstorms have long inspired "
-            "stories about powerful dragons.\n\n"
-            "In Bhutanese tradition, the sound "
-            "of thunder is sometimes associated "
-            "with the roar of a dragon.\n\n"
-            "The dragon is known as Druk, "
-            "and Bhutan is called Druk Yul, "
-            "meaning the Land of the Thunder Dragon.\n\n"
-            "The Druk appears on Bhutan's "
-            "national flag, where it represents "
-            "the country's identity and strength.\n\n"
-            "The Thunder Dragon remains an "
-            "important symbol in Bhutanese "
-            "history, culture and national life."
-        ),
-        "cultural_significance": (
-            "The Thunder Dragon is closely "
-            "associated with Bhutan's national "
-            "identity. It appears on the "
-            "national flag and is reflected "
-            "in the country's traditional name."
+            "The Thunder Dragon, known as Druk, is one of the most "
+            "recognisable symbols of Bhutan. In Bhutanese tradition, "
+            "the sound of thunder is sometimes associated with "
+            "the roar of a powerful dragon.\n\n"
+            "The dragon appears on Bhutan's national flag and is "
+            "closely connected with the country's name, Druk Yul, "
+            "meaning the Land of the Thunder Dragon."
         ),
         "facts": [
             ("Local name", "Druk"),
             ("Country", "Bhutan"),
-            ("Symbolises", "National identity and strength")
-        ]
-    },
-
-    "The Black Mountain": {
-        "id": "MYT-008",
-        "category": "Folklore",
-        "origin": "Central Bhutan",
-        "image": "black_mountain (2).png",
-        "subtitle": "A sacred mountain landscape.",
-        "overview": (
-            "The Black Mountains are part of "
-            "Bhutan's central landscape and "
-            "are connected with local traditions."
-        ),
-        "story": (
-            "Bhutan's mountains have long been "
-            "associated with sacred places "
-            "and local beliefs.\n\n"
-            "The Black Mountains form an "
-            "important part of the country's "
-            "natural landscape.\n\n"
-            "Stories connected with mountain "
-            "areas reflect the mystery of "
-            "nature and the respect traditionally "
-            "shown towards the environment."
-        ),
-        "cultural_significance": (
-            "The Black Mountains highlight "
-            "the connection between Bhutanese "
-            "landscapes and cultural traditions."
-        ),
-        "facts": [
-            ("Location", "Central Bhutan"),
-            ("Type", "Landscape tradition"),
-            ("Association", "Mountains and local beliefs")
-        ]
-    },
-
-    "Paro Taktsang": {
-        "id": "MYT-009",
-        "category": "Sacred Legend",
-        "origin": "Paro, Bhutan",
-        "image": "paro_taktsang.png",
-        "subtitle": "The sacred Tiger's Nest monastery.",
-        "overview": (
-            "Paro Taktsang is one of Bhutan's "
-            "most famous religious landmarks."
-        ),
-        "story": (
-            "High above Paro Valley stands "
-            "the famous Tiger's Nest monastery.\n\n"
-            "According to religious tradition, "
-            "Guru Rinpoche travelled to this "
-            "sacred location on the back "
-            "of a tigress.\n\n"
-            "He is believed to have meditated "
-            "in a cave and subdued harmful "
-            "spiritual forces.\n\n"
-            "The monastery later became "
-            "one of Bhutan's most important "
-            "places of pilgrimage."
-        ),
-        "cultural_significance": (
-            "Paro Taktsang is an important "
-            "symbol of Bhutanese Buddhist "
-            "heritage and pilgrimage."
-        ),
-        "facts": [
-            ("Location", "Paro, Bhutan"),
-            ("Also known as", "Tiger's Nest"),
-            ("Association", "Guru Rinpoche")
-        ]
-    },
-
-    "The Legend of Paro Taktsang": {
-        "id": "MYT-009",
-        "category": "Sacred Legend",
-        "origin": "Paro, Bhutan",
-        "image": "paro_taktsang.png",
-        "subtitle": "The legend of the Tiger's Nest.",
-        "overview": (
-            "Paro Taktsang is a sacred monastery "
-            "associated with Guru Rinpoche."
-        ),
-        "story": (
-            "According to Bhutanese Buddhist "
-            "tradition, Guru Rinpoche travelled "
-            "to a cave above Paro Valley "
-            "on the back of a tigress.\n\n"
-            "He meditated at this sacred site, "
-            "which later became known as "
-            "Paro Taktsang or Tiger's Nest.\n\n"
-            "The monastery is now one of "
-            "Bhutan's most recognised "
-            "religious landmarks."
-        ),
-        "cultural_significance": (
-            "The site represents Bhutan's "
-            "religious heritage and the "
-            "importance of sacred pilgrimage."
-        ),
-        "facts": [
-            ("Location", "Paro, Bhutan"),
-            ("Also known as", "Tiger's Nest"),
-            ("Association", "Guru Rinpoche")
-        ]
-    },
-
-    "Dochula": {
-        "id": "MYT-010",
-        "category": "Cultural Landmark",
-        "origin": "Dochula Pass, Bhutan",
-        "image": "dochula.png",
-        "subtitle": "A mountain pass with 108 memorial chortens.",
-        "overview": (
-            "Dochula Pass is an important "
-            "cultural landmark in Bhutan."
-        ),
-        "story": (
-            "Dochula Pass lies between "
-            "Thimphu and Punakha.\n\n"
-            "It is especially known for "
-            "the 108 Druk Wangyal Chortens.\n\n"
-            "The site provides a place "
-            "for remembrance and reflection "
-            "surrounded by mountain scenery."
-        ),
-        "cultural_significance": (
-            "Dochula represents remembrance, "
-            "national identity and "
-            "Bhutanese cultural heritage."
-        ),
-        "facts": [
-            ("Location", "Dochula Pass"),
-            ("Known for", "108 memorial chortens"),
-            ("Type", "Cultural landmark")
-        ]
-    },
-
-    "Tshomen Lu": {
-        "id": "MYT-011",
-        "category": "Water Spirit",
-        "origin": "Bhutan and the Himalayas",
-        "image": "tshomen_lu.png",
-        "subtitle": "Traditional water spirits.",
-        "overview": (
-            "Tshomen and Lu are associated "
-            "with water spirits in Bhutanese "
-            "and Himalayan traditions."
-        ),
-        "story": (
-            "In Bhutanese and Himalayan folklore, "
-            "water sources are sometimes associated "
-            "with supernatural beings.\n\n"
-            "Lu are traditionally connected "
-            "with rivers, lakes and springs.\n\n"
-            "Tshomen are commonly associated "
-            "with female water spirits.\n\n"
-            "These traditions reflect the "
-            "belief that natural water sources "
-            "should be treated with respect."
-        ),
-        "cultural_significance": (
-            "Water spirit traditions encourage "
-            "respect for lakes, rivers "
-            "and the natural environment."
-        ),
-        "facts": [
-            ("Region", "Bhutan and Himalayas"),
-            ("Type", "Water spirits"),
-            ("Association", "Lakes and rivers")
-        ]
-    },
-
-    "Tshomen and Lu": {
-        "id": "MYT-011",
-        "category": "Water Spirit",
-        "origin": "Bhutan",
-        "image": "tshomen_lu.png",
-        "subtitle": "Sacred water beings.",
-        "overview": (
-            "Traditional beings associated "
-            "with lakes, rivers and springs."
-        ),
-        "story": (
-            "Bhutanese folklore includes "
-            "stories of water spirits "
-            "connected with natural places.\n\n"
-            "Tshomen and Lu are associated "
-            "with water and the protection "
-            "of sacred environments.\n\n"
-            "These traditions remind people "
-            "of the importance of treating "
-            "natural water sources with respect."
-        ),
-        "cultural_significance": (
-            "These beliefs connect "
-            "spiritual traditions with "
-            "care for the environment."
-        ),
-        "facts": [
-            ("Region", "Bhutan"),
-            ("Type", "Water spirits"),
-            ("Association", "Water sources")
-        ]
+            ("Symbolises", "Strength and protection")
+        ],
+        "note": (
+            "The Thunder Dragon is an important national and "
+            "cultural symbol of Bhutan."
+        )
     },
 
     "Heroes": {
-        "id": "MYT-012",
         "category": "Folklore",
         "origin": "Bhutan",
         "image": "heroes.png",
-        "subtitle": "Stories of courage and bravery.",
-        "overview": (
-            "Heroic stories teach values "
-            "such as courage and kindness."
-        ),
+        "subtitle": "Stories of courage and bravery passed down through generations.",
         "story": (
-            "Heroic stories are important "
-            "parts of oral traditions.\n\n"
-            "They often describe people "
-            "who demonstrate courage, "
-            "wisdom and determination.\n\n"
-            "Such stories are shared "
-            "to teach lessons about "
-            "human behaviour and values."
-        ),
-        "cultural_significance": (
-            "Hero stories preserve "
-            "traditional values "
-            "for younger generations."
+            "Stories of heroes are an important part of oral "
+            "traditions. They often describe people who demonstrate "
+            "courage, wisdom, kindness, and determination when "
+            "facing difficult situations.\n\n"
+            "These stories are shared across generations to teach "
+            "important values and remind listeners that bravery "
+            "can be shown through both great actions and everyday choices."
         ),
         "facts": [
             ("Region", "Bhutan"),
-            ("Themes", "Courage and wisdom")
-        ]
+            ("Type", "Heroic folklore"),
+            ("Themes", "Courage, wisdom, and kindness")
+        ],
+        "note": (
+            "Hero stories preserve traditional values and provide "
+            "lessons for younger generations."
+        )
     },
 
     "Gods": {
-        "id": "MYT-013",
         "category": "Mythology",
-        "origin": "Bhutan",
+        "origin": "Bhutan and Himalayan Buddhist tradition",
         "image": "gods.png",
-        "subtitle": "Divine beings in Bhutanese traditions.",
-        "overview": (
-            "Bhutanese religious traditions "
-            "include many divine and "
-            "protective beings."
-        ),
+        "subtitle": "Divine beings represented in Bhutanese religious traditions.",
         "story": (
-            "Divine beings appear in "
-            "Bhutanese religious paintings, "
-            "temples and sacred stories.\n\n"
-            "Different deities are associated "
-            "with protection, compassion "
-            "and wisdom.\n\n"
-            "These traditions form part "
-            "of Bhutan's religious "
-            "and cultural heritage."
-        ),
-        "cultural_significance": (
-            "Religious mythology reflects "
-            "the importance of Buddhist "
-            "traditions in Bhutan."
+            "Bhutanese religious traditions include many divine "
+            "and protective beings. They are represented in "
+            "religious paintings, statues, temples, and sacred "
+            "stories.\n\n"
+            "Different deities are associated with protection, "
+            "wisdom, compassion, and the overcoming of obstacles. "
+            "Their stories form an important part of the country's "
+            "religious and cultural heritage."
         ),
         "facts": [
-            ("Region", "Bhutan"),
-            ("Themes", "Protection and wisdom")
-        ]
+            ("Region", "Bhutan and Himalayan region"),
+            ("Type", "Religious mythology"),
+            ("Themes", "Protection, wisdom, and compassion")
+        ],
+        "note": (
+            "These traditions reflect the importance of Buddhist "
+            "beliefs and religious art in Bhutanese culture."
+        )
     }
 }
 
 
+
+# Additional entries for titles used on the Myths page.
+MYTH_CONTENT.update({
+    "Genyen Jagpa Melen": {
+        "category": "Guardian Deity", "origin": "Thimphu, Bhutan",
+        "image": "genyen_jagpa_melen.jpg",
+        "subtitle": "A guardian deity associated with Dechenphu Lhakhang.",
+        "overview": "Genyen Jagpa Melen is revered as a protective deity in Bhutanese religious tradition, especially in connection with Dechenphu Lhakhang near Thimphu.",
+        "story": "Dechenphu Lhakhang is a place of worship associated with the guardian deity Genyen Jagpa Melen. Devotees visit the sacred site to offer prayers and seek blessings.\n\nIn local religious tradition, guardian deities are understood to protect particular places and the communities connected to them. The traditions surrounding Genyen Jagpa Melen are passed on through worship, local accounts and the practices of devotees.\n\nThis introduction describes the deity's place in the tradition; a longer narrative should be added from a documented local account rather than invented as an authentic legend.",
+        "cultural_significance": "The deity is connected with the religious heritage of Dechenphu Lhakhang and with Bhutanese traditions of honouring local protectors.",
+        "facts": [("Associated site", "Dechenphu Lhakhang"), ("Region", "Thimphu, Bhutan"), ("Type", "Guardian deity")]
+    },
+    "The Story of King Gesar": {
+        "category": "Hero", "origin": "Tibetan and Himalayan epic tradition",
+        "image": "heroes.png",
+        "subtitle": "A celebrated hero of the epic of Gesar.",
+        "overview": "King Gesar is the central hero of a vast oral epic told in different forms across Tibetan and Himalayan communities.",
+        "story": "The Epic of King Gesar follows a heroic ruler whose adventures are remembered through generations of oral storytelling. In many versions, Gesar comes to lead the kingdom of Ling and faces challenges that test his courage, judgement and responsibilities as a leader.\n\nThe epic includes journeys, contests and encounters with powerful opponents. Storytellers have preserved different episodes and local variations, so there is no single short version that represents every tradition.\n\nThrough his adventures, Gesar is celebrated for protecting his people and overcoming adversity. The stories also explore leadership, loyalty and the consequences of human choices.\n\nThis is a brief introduction to the epic, not a complete translation or a claim that all versions tell the same events.",
+        "cultural_significance": "The Gesar epic is an important living oral tradition. Its many versions demonstrate the role of storytellers in preserving language, cultural memory and shared values.",
+        "facts": [("Tradition", "Himalayan oral epic"), ("Hero", "King Gesar of Ling"), ("Themes", "Leadership, courage and duty")]
+    },
+    "The Yeti": {
+        "category": "Creature", "origin": "Himalayan folklore", "image": "yeti.png",
+        "subtitle": "A mysterious mountain being of Himalayan storytelling.",
+        "story": "Stories of the Yeti describe a mysterious being believed by some storytellers to inhabit remote Himalayan mountain areas. Accounts differ from place to place and often reflect the uncertainty and wonder of the high mountains.\n\nThe Yeti remains a figure of folklore rather than a scientifically established species.",
+        "note": "Yeti stories reflect the imagination and oral traditions of Himalayan communities.",
+        "facts": [("Region", "Himalayas"), ("Type", "Folklore creature")]
+    },
+    "The Snow Lion": {
+        "category": "Creature", "origin": "Himalayan Buddhist traditions", "image": "snow_lion.png",
+        "subtitle": "A symbolic creature of the snowy mountains.",
+        "story": "The Snow Lion appears in Himalayan art and symbolic traditions. It is often portrayed as a lively, powerful white creature associated with the high mountains.\n\nIts image conveys spiritual qualities rather than representing a documented animal species.",
+        "note": "The Snow Lion is a recognised symbolic figure in Himalayan cultural and religious imagery.",
+        "facts": [("Region", "Himalayas"), ("Type", "Symbolic creature")]
+    },
+    "The Firebird": {
+        "category": "Folklore", "origin": "Slavic folklore", "image": "firebird (1).png",
+        "subtitle": "A glowing bird from Slavic fairy tales.",
+        "story": "In Slavic fairy tales, the Firebird is a wondrous bird whose glowing feathers attract the attention of those who encounter it. Heroes may be sent to search for the bird, setting off journeys filled with difficult choices and magical events.\n\nDifferent tales tell different adventures involving the Firebird.",
+        "note": "The Firebird belongs to Slavic folklore and should not be presented as a traditional Bhutanese legend.",
+        "facts": [("Origin", "Slavic folklore"), ("Type", "Magical bird")]
+    },
+    "The Birth of the Universe": {
+        "category": "Folklore", "origin": "Multiple world traditions", "image": "gods.png",
+        "subtitle": "How different traditions explain beginnings.",
+        "story": "Across the world, communities have told stories about how the universe began. Some describe the world emerging from darkness, water or a cosmic being; others explain creation through sacred teachings.\n\nThere is no single universal traditional story. A specific culture's version should be identified before presenting a detailed account.",
+        "note": "Creation narratives vary widely and should be attributed to the communities and traditions from which they come.",
+        "facts": [("Theme", "Origins"), ("Tradition", "Varies by culture")]
+    },
+    "The Demoness of Dochula": {
+        "category": "Folklore", "origin": "Bhutan", "image": "dochula.jpg",
+        "subtitle": "A Bhutanese legend associated with spiritual transformation.",
+        "story": "Bhutanese oral traditions contain accounts of spiritual teachers confronting harmful forces and transforming places into sites of practice and devotion. Stories associated with Drukpa Kunley have multiple local retellings.\n\nA precise account of the Demoness of Dochula should be drawn from a documented version of that particular legend; this page currently provides an introduction rather than inventing an episode.",
+        "note": "Local variants and place names should be verified with a reliable Bhutanese source.",
+        "facts": [("Region", "Bhutan"), ("Type", "Local legend")]
+    },
+    "The Man Saved by a Dragon": {
+        "category": "Folklore", "origin": "Bhutan (project classification)",
+        "image": "thunder_dragon.png",
+        "subtitle": "A story of rescue and the mysterious dragon.",
+        "story": "This title refers to a story of a person rescued by a dragon. The source narrative is not included in the existing story data, so a detailed traditional account cannot yet be verified.\n\nOnce the original account is supplied, it can be presented here in the same story layout without changing the design.",
+        "note": "This entry needs a documented story source before it can be described as an authentic traditional account.",
+        "facts": [("Type", "Dragon legend"), ("Story status", "Original narrative needed")]
+    }
+})
+
+# Match alternative card titles to the same detailed entries.
+MYTH_CONTENT["Jomo (Aum Jomo)"] = dict(MYTH_CONTENT["Jomo"])
+MYTH_CONTENT["The Legend of Paro Taktsang"] = dict(MYTH_CONTENT["Paro Taktsang"])
+MYTH_CONTENT["Tshomen and Lu"] = dict(MYTH_CONTENT["Tshomen Lu"])
+
+# Correct images that actually exist in the original assets folder.
+MYTH_CONTENT["Guru Rinpoche"]["image"] = "guru_rinpocheo.jpg"
+MYTH_CONTENT["Ap Genyen Domtshang"]["image"] = "ap_genyen_domtshang.jpg"
+MYTH_CONTENT["Yeshey Gonpo"]["image"] = "yeshey_gonpo.jpg"
+
+# Preserve existing cultural notes while making all entries use consistent keys.
+for _title, _entry in MYTH_CONTENT.items():
+    _entry.setdefault("overview", _entry.get("subtitle", ""))
+    _entry.setdefault("cultural_significance", _entry.get("note", ""))
+
+
 # ============================================================
-# IMAGE FUNCTIONS
+# IMAGE HELPERS
 # ============================================================
 
 def find_image(filename):
-
+    """Find an image in assets, accepting different extensions."""
     if not filename:
         return None
-
-    for folder in [IMAGE_DIR, PROJECT_DIR]:
-        path = folder / filename
-
-        if path.is_file():
-            return path
-
-    target = "".join(
-        character.lower()
-        for character in Path(filename).stem
-        if character.isalnum()
-    )
-
-    for folder in [IMAGE_DIR, PROJECT_DIR]:
-
+    folders = (IMAGE_DIR, PROJECT_DIR, PROJECT_DIR / "images")
+    filename_path = Path(filename)
+    for folder in folders:
+        exact = folder / filename
+        if exact.is_file():
+            return exact
+    target = "".join(c.lower() for c in filename_path.stem if c.isalnum())
+    for folder in folders:
         if not folder.is_dir():
             continue
-
-        for file in folder.iterdir():
-
-            if not file.is_file():
+        for candidate in folder.iterdir():
+            if candidate.suffix.lower() not in (".png", ".jpg", ".jpeg", ".webp"):
                 continue
-
-            if file.suffix.lower() not in {
-                ".png", ".jpg", ".jpeg", ".webp"
-            }:
-                continue
-
-            current = "".join(
-                character.lower()
-                for character in file.stem
-                if character.isalnum()
-            )
-
-            if current == target:
-                return file
-
+            stem = "".join(c.lower() for c in candidate.stem if c.isalnum())
+            if stem == target:
+                return candidate
     return None
 
 
 def load_detail_image(filename, size):
-
+    """Contain the complete image inside a fixed area, with no stretching."""
     path = find_image(filename)
-
-    if path is None:
+    if not path:
+        print("DETAIL IMAGE NOT FOUND:", filename)
         return None
-
     try:
-        image = Image.open(path).convert("RGB")
-
-        image = ImageOps.fit(
-            image,
-            size,
-            method=Image.Resampling.LANCZOS
-        )
-
-        return ImageTk.PhotoImage(image)
-
+        with Image.open(path) as original:
+            image = original.convert("RGB")
+        image = ImageOps.contain(image, size, method=Image.Resampling.LANCZOS)
+        background = Image.new("RGB", size, CARD)
+        x = (size[0] - image.width) // 2
+        y = (size[1] - image.height) // 2
+        background.paste(image, (x, y))
+        return ImageTk.PhotoImage(background)
     except Exception as error:
-        print("Image error:", error)
+        print("DETAIL IMAGE ERROR:", filename, error)
         return None
+
+
+def clear_parent(parent):
+    for child in parent.winfo_children():
+        child.destroy()
 
 
 # ============================================================
-# STORY DETAIL PAGE
+# SHARED STORY PAGE WITH ROUNDED TABS
 # ============================================================
 
 def show_myth_detail(parent, back_command, name):
-
-    global _image_refs
+    clear_parent(parent)
     _image_refs.clear()
-
-    for widget in parent.winfo_children():
-        widget.destroy()
-
     data = MYTH_CONTENT.get(name)
 
-    main = tk.Frame(parent, bg=BG)
-    main.pack(fill="both", expand=True)
+    root = tk.Frame(parent, bg=BG)
+    root.pack(fill="both", expand=True)
 
-    # --------------------------------------------------------
-    # BACK BUTTON
-    # --------------------------------------------------------
-
-    top_bar = tk.Frame(main, bg=BG)
-    top_bar.pack(fill="x", padx=25, pady=15)
-
-    tk.Button(
-        top_bar,
-        text="←  Back",
-        command=back_command,
-        bg=BG,
-        fg=GOLD,
-        font=("Arial", 11, "bold"),
-        activebackground=BG,
-        activeforeground=LIGHT_GOLD,
-        relief="flat",
-        cursor="hand2"
+    # Keep the back arrow visible while reading and scrolling.
+    top = tk.Frame(root, bg=BG)
+    top.pack(fill="x", padx=26, pady=(12, 8))
+    ctk.CTkButton(
+        top, text="←  Back", command=back_command,
+        fg_color="transparent", hover_color=CARD,
+        text_color=GOLD, corner_radius=12,
+        font=("Segoe UI", 13, "bold"), width=105, height=35
     ).pack(side="left")
 
     if data is None:
+        tk.Label(root, text="Story not found: " + name, bg=BG, fg=TEXT,
+                 font=("Georgia", 20, "bold")).pack(pady=45)
+        return root
 
-        tk.Label(
-            main,
-            text="Story not found",
-            bg=BG,
-            fg=GOLD,
-            font=("Georgia", 24, "bold")
-        ).pack(pady=40)
-
-        tk.Label(
-            main,
-            text="No story has been added for: " + name,
-            bg=BG,
-            fg=TEXT,
-            font=("Arial", 11)
-        ).pack()
-
-        return main
-
-    # --------------------------------------------------------
-    # SCROLLABLE AREA
-    # --------------------------------------------------------
-
-    canvas = tk.Canvas(
-        main,
-        bg=BG,
-        highlightthickness=0
-    )
-
-    scrollbar = tk.Scrollbar(
-        main,
-        orient="vertical",
-        command=canvas.yview
-    )
-
-    canvas.configure(
-        yscrollcommand=scrollbar.set
-    )
-
+    outer = tk.Frame(root, bg=BG)
+    outer.pack(fill="both", expand=True)
+    canvas = tk.Canvas(outer, bg=BG, highlightthickness=0)
+    scrollbar = tk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+    canvas.configure(yscrollcommand=scrollbar.set)
     scrollbar.pack(side="right", fill="y")
-
-    canvas.pack(
-        side="left",
-        fill="both",
-        expand=True
-    )
-
+    canvas.pack(side="left", fill="both", expand=True)
     content = tk.Frame(canvas, bg=BG)
+    window = canvas.create_window((0, 0), window=content, anchor="nw")
+    content.bind("<Configure>", lambda event: canvas.configure(scrollregion=canvas.bbox("all")))
+    canvas.bind("<Configure>", lambda event: canvas.itemconfigure(window, width=event.width))
 
-    window_id = canvas.create_window(
-        (0, 0),
-        window=content,
-        anchor="nw"
-    )
-
-    def update_scroll(event=None):
-        canvas.configure(
-            scrollregion=canvas.bbox("all")
-        )
-
-    def resize_content(event):
-        canvas.itemconfigure(
-            window_id,
-            width=event.width
-        )
-
-    content.bind("<Configure>", update_scroll)
-    canvas.bind("<Configure>", resize_content)
-
-    def mousewheel(event):
-
+    def wheel(event):
         if getattr(event, "num", None) == 4:
             direction = -1
-
         elif getattr(event, "num", None) == 5:
             direction = 1
-
         else:
             direction = -1 if event.delta > 0 else 1
-
         canvas.yview_scroll(direction, "units")
 
-    canvas.bind(
-        "<Enter>",
-        lambda event: canvas.bind_all(
-            "<MouseWheel>",
-            mousewheel
-        )
-    )
+    # Bind only to this page, not to unrelated application pages.
+    def bind_wheel(event):
+        canvas.bind_all("<MouseWheel>", wheel)
+        canvas.bind_all("<Button-4>", wheel)
+        canvas.bind_all("<Button-5>", wheel)
 
-    canvas.bind(
-        "<Leave>",
-        lambda event: canvas.unbind_all(
-            "<MouseWheel>"
-        )
-    )
+    def unbind_wheel(event):
+        canvas.unbind_all("<MouseWheel>")
+        canvas.unbind_all("<Button-4>")
+        canvas.unbind_all("<Button-5>")
 
-    # --------------------------------------------------------
-    # TITLE AND INFORMATION
-    # --------------------------------------------------------
+    canvas.bind("<Enter>", bind_wheel)
+    canvas.bind("<Leave>", unbind_wheel)
 
-    header = tk.Frame(content, bg=BG)
+    heading = tk.Frame(content, bg=BG)
+    heading.pack(fill="x", padx=28, pady=(15, 15))
+    # Keep a stable ID without changing existing story data.
+    story_id = data.get("id")
+    if not story_id:
+        story_id = "MYT-{:03d}".format(list(MYTH_CONTENT).index(name) + 1)
+    tk.Label(heading, text=story_id, bg=BG, fg=GOLD,
+             font=("Segoe UI", 10, "bold")).pack(anchor="w")
+    tk.Label(heading, text=name, bg=BG, fg=TEXT,
+             font=("Georgia", 29, "bold"), anchor="w", justify="left",
+             wraplength=840).pack(fill="x", pady=(9, 8))
+    tk.Label(heading, text=data.get("subtitle", ""), bg=BG, fg=LIGHT_TEXT,
+             font=("Segoe UI", 11), anchor="w", justify="left",
+             wraplength=840).pack(fill="x")
+    tk.Label(heading, text=data.get("category", "Myth") + "  •  " + data.get("origin", ""),
+             bg=BG, fg=GOLD, font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(12, 0))
 
-    header.pack(
-        fill="x",
-        padx=30,
-        pady=(20, 15)
-    )
+    # A fixed-size image surface centred within the available page width.
+    image_outer = tk.Frame(content, bg=BG)
+    image_outer.pack(fill="x", padx=28, pady=(4, 18))
+    image_surface = ctk.CTkFrame(image_outer, fg_color=CARD,
+                                 border_color=BORDER, border_width=1,
+                                 corner_radius=14, height=305)
+    image_surface.pack(fill="x")
+    image_surface.pack_propagate(False)
+    image_label = tk.Label(image_surface, bg=CARD, bd=0, highlightthickness=0)
+    image_label.place(relx=0.5, rely=0.5, anchor="center")
+    image_path = data.get("image")
+    current_size = [0]
 
-    tk.Label(
-        header,
-        text=data.get("id", "MYTHLAB"),
-        bg=BG,
-        fg=GOLD,
-        font=("Arial", 10, "bold")
-    ).pack(anchor="w")
-
-    tk.Label(
-        header,
-        text=name,
-        bg=BG,
-        fg=TEXT,
-        font=("Georgia", 28, "bold"),
-        wraplength=850,
-        justify="left"
-    ).pack(anchor="w", pady=(10, 10))
-
-    tk.Label(
-        header,
-        text=data.get("subtitle", ""),
-        bg=BG,
-        fg=LIGHT_TEXT,
-        font=("Arial", 11),
-        wraplength=850,
-        justify="left"
-    ).pack(anchor="w")
-
-    tk.Label(
-        header,
-        text=(
-            data.get("category", "Myth")
-            + "  •  "
-            + data.get("origin", "Unknown")
-        ),
-        bg=BG,
-        fg=GOLD,
-        font=("Arial", 10)
-    ).pack(anchor="w", pady=(15, 0))
-
-    # --------------------------------------------------------
-    # IMAGE
-    # --------------------------------------------------------
-
-    image_frame = tk.Frame(
-        content,
-        bg=CARD,
-        highlightthickness=1,
-        highlightbackground=BORDER
-    )
-
-    image_frame.pack(
-        fill="x",
-        padx=30,
-        pady=(5, 20)
-    )
-
-    photo = load_detail_image(
-        data.get("image"),
-        (800, 290)
-    )
-
-    if photo:
-
-        _image_refs.append(photo)
-
-        image_label = tk.Label(
-            image_frame,
-            image=photo,
-            bg=CARD
-        )
-
-        image_label.image = photo
-        image_label.pack(pady=8)
-
-    else:
-
-        tk.Label(
-            image_frame,
-            text="MYTHLAB",
-            bg=CARD,
-            fg=GOLD,
-            font=("Georgia", 24, "bold"),
-            height=6
-        ).pack(fill="x")
-
-    # --------------------------------------------------------
-    # TAB BUTTONS
-    # --------------------------------------------------------
-
-    tab_bar = tk.Frame(content, bg=BG)
-
-    tab_bar.pack(
-        fill="x",
-        padx=30,
-        pady=(0, 15)
-    )
-
-    tab_buttons = {}
-
-    display_area = tk.Frame(
-        content,
-        bg=CARD,
-        highlightthickness=1,
-        highlightbackground=BORDER
-    )
-
-    display_area.pack(
-        fill="x",
-        padx=30,
-        pady=(0, 25)
-    )
-
-    def add_paragraph(container, paragraph):
-
-        paragraph = str(paragraph).strip()
-
-        if not paragraph:
+    def update_image(event=None):
+        width = max(240, image_surface.winfo_width() - 20)
+        width = min(width, 940)
+        if abs(width - current_size[0]) < 12:
             return
+        current_size[0] = width
+        photo = load_detail_image(image_path, (width, 285))
+        if photo:
+            image_label.configure(image=photo, text="")
+            image_label.image = photo
+            _image_refs[:] = [photo]
+        else:
+            image_label.configure(image="", text="Image not available",
+                                  fg=LIGHT_TEXT, font=("Segoe UI", 12))
 
-        tk.Label(
-            container,
-            text=paragraph,
-            bg=CARD,
-            fg=TEXT,
-            font=("Arial", 11),
-            justify="left",
-            anchor="nw",
-            wraplength=790
-        ).pack(
-            fill="x",
-            anchor="w",
-            pady=(0, 17)
-        )
+    image_surface.bind("<Configure>", update_image)
 
-    # --------------------------------------------------------
-    # EVENT HANDLING FOR TABS
-    # --------------------------------------------------------
+    # Tabs are rounded CustomTkinter buttons, not square Tkinter buttons.
+    tabs = tk.Frame(content, bg=BG)
+    tabs.pack(fill="x", padx=28, pady=(0, 12))
+    detail = ctk.CTkFrame(content, fg_color=CARD, corner_radius=14,
+                          border_width=1, border_color=BORDER)
+    detail.pack(fill="x", padx=28, pady=(0, 24))
+    buttons = {}
+
+    def paragraph(master, value):
+        for part in str(value).split("\n\n"):
+            part = part.strip()
+            if not part:
+                continue
+            label = tk.Label(master, text=part, bg=CARD, fg=TEXT,
+                             font=("Segoe UI", 11), justify="left", anchor="nw",
+                             wraplength=770)
+            label.pack(fill="x", anchor="w", pady=(0, 15))
+            # Adapt wrapping when the window is resized.
+            label.bind("<Configure>", lambda e, lbl=label: lbl.configure(
+                wraplength=max(200, e.width - 10)))
 
     def show_section(section):
-
-        for widget in display_area.winfo_children():
-            widget.destroy()
-
-        for title, button in tab_buttons.items():
-
-            is_active = title == section
-
-            button.configure(
-                bg=GOLD if is_active else CARD2,
-                fg=BG if is_active else TEXT
-            )
-
-        tk.Label(
-            display_area,
-            text=section,
-            bg=CARD,
-            fg=GOLD,
-            font=("Georgia", 20, "bold")
-        ).pack(
-            anchor="w",
-            padx=25,
-            pady=(25, 15)
-        )
-
-        body = tk.Frame(display_area, bg=CARD)
-
-        body.pack(
-            fill="x",
-            padx=25,
-            pady=(0, 20)
-        )
-
+        for child in detail.winfo_children():
+            child.destroy()
+        for label, button in buttons.items():
+            active = label == section
+            button.configure(fg_color=GOLD if active else "#102b3d",
+                             text_color=BG if active else TEXT)
+        inner = tk.Frame(detail, bg=CARD)
+        inner.pack(fill="x", padx=24, pady=23)
+        tk.Label(inner, text=section, bg=CARD, fg=GOLD,
+                 font=("Georgia", 19, "bold")).pack(anchor="w", pady=(0, 15))
         if section == "Overview":
-
-            add_paragraph(
-                body,
-                data.get(
-                    "overview",
-                    data.get("subtitle", "")
-                )
-            )
-
-            tk.Label(
-                body,
-                text="KEY FACTS",
-                bg=CARD,
-                fg=GOLD,
-                font=("Arial", 11, "bold")
-            ).pack(
-                anchor="w",
-                pady=(12, 12)
-            )
-
-            for label, value in data.get("facts", []):
-
-                add_paragraph(
-                    body,
-                    str(label) + ": " + str(value)
-                )
-
+            paragraph(inner, data.get("overview", data.get("subtitle", "")))
+            tk.Label(inner, text="KEY FACTS", bg=CARD, fg=GOLD,
+                     font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(7, 12))
+            for key, value in data.get("facts", []):
+                paragraph(inner, f"{key}: {value}")
         elif section == "Story":
-
-            story = data.get("story", "")
-
-            if story.strip():
-
-                for paragraph in story.split("\n\n"):
-                    add_paragraph(body, paragraph)
-
-            else:
-
-                add_paragraph(
-                    body,
-                    "The story has not been added yet."
-                )
-
-        elif section == "Cultural Significance":
-
-            cultural_text = data.get(
-                "cultural_significance",
-                data.get("note", "")
-            )
-
-            if cultural_text.strip():
-
-                for paragraph in cultural_text.split("\n\n"):
-                    add_paragraph(body, paragraph)
-
-            else:
-
-                add_paragraph(
-                    body,
-                    "Cultural information has not been added yet."
-                )
-
+            paragraph(inner, data.get("story") or "The story has not been added yet.")
+        else:
+            paragraph(inner, data.get("cultural_significance") or data.get("note")
+                      or "Cultural information has not been added yet.")
         content.update_idletasks()
-        update_scroll()
+        canvas.configure(scrollregion=canvas.bbox("all"))
+        canvas.yview_moveto(min(1.0, tabs.winfo_y() / max(1, content.winfo_height())))
 
-        # Scroll to the tab section
-        section_position = tab_bar.winfo_y()
+    for section in ("Overview", "Story", "Cultural Significance"):
+        button = ctk.CTkButton(
+            tabs, text=section, fg_color="#102b3d", hover_color=LIGHT_GOLD,
+            text_color=TEXT, corner_radius=13, height=48,
+            font=("Segoe UI", 11, "bold"),
+            command=lambda selected=section: show_section(selected))
+        button.pack(side="left", fill="x", expand=True, padx=4)
+        buttons[section] = button
 
-        content_height = max(
-            1,
-            content.winfo_height()
-        )
+    ctk.CTkButton(content, text="←  Back to Myths", command=back_command,
+                  fg_color=GOLD, hover_color=LIGHT_GOLD, text_color=BG,
+                  corner_radius=12, width=160, height=38,
+                  font=("Segoe UI", 11, "bold")).pack(anchor="w", padx=32, pady=(0, 30))
 
-        canvas.yview_moveto(
-            min(1.0, section_position / content_height)
-        )
-
-    # --------------------------------------------------------
-    # CREATE THREE CLICKABLE BUTTONS
-    # --------------------------------------------------------
-
-    sections = [
-        "Overview",
-        "Story",
-        "Cultural Significance"
-    ]
-
-    for section in sections:
-
-        button = tk.Button(
-            tab_bar,
-            text=section,
-            font=("Arial", 10, "bold"),
-            bg=CARD2,
-            fg=TEXT,
-            activebackground=GOLD,
-            activeforeground=BG,
-            relief="flat",
-            padx=12,
-            pady=12,
-            cursor="hand2",
-            command=lambda selected=section: show_section(
-                selected
-            )
-        )
-
-        button.pack(
-            side="left",
-            fill="x",
-            expand=True,
-            padx=4
-        )
-
-        tab_buttons[section] = button
-
-    # --------------------------------------------------------
-    # BOTTOM BACK BUTTON
-    # --------------------------------------------------------
-
-    tk.Button(
-        content,
-        text="←  Back",
-        command=back_command,
-        font=("Arial", 10, "bold"),
-        bg=GOLD,
-        fg=BG,
-        activebackground=LIGHT_GOLD,
-        relief="flat",
-        padx=22,
-        pady=10,
-        cursor="hand2"
-    ).pack(
-        anchor="w",
-        padx=30,
-        pady=(0, 35)
-    )
-
-    # Show Overview when story first opens
     show_section("Overview")
     canvas.yview_moveto(0)
-
-    return main
+    return root
