@@ -275,7 +275,7 @@ def load_photo(names, size, mode="contain", background=CARD):
 # MAIN REGIONS PAGE
 # ============================================================
 
-def show_regions(parent):
+def show_regions(parent, open_myth=None):
 
     # Clear the existing page
     for widget in parent.winfo_children():
@@ -341,13 +341,96 @@ def show_regions(parent):
     # COMMON HELPERS
     # ========================================================
 
-    def open_dzongkhag(name):
+    # Only stories with a supported district association in the supplied files.
+    # Display titles can differ from keys in myth_detail.py.
+    REGION_STORIES = {
+        "Haa": ["Ap Chhundu"],
+        "Paro": ["The Legend of Paro Taktsang", "Guru Rinpoche", "Jomo (Aum Jomo)"],
+        "Thimphu": ["Genyen Jagpa Melen", "Ap Genyen Domtshang"],
+        "Punakha": ["Drukpa Kunley", "The Demoness of Dochula"],
+    }
+    STORY_DETAILS = {
+        "Ap Chhundu": ("The guardian deity of Haa Valley.", "ap_chhundu.png", "Ap Chhundu"),
+        "The Legend of Paro Taktsang": ("The sacred monastery and its legends.", "paro_taktsang.png", "Paro Taktsang"),
+        "Guru Rinpoche": ("Sacred traditions connected with Paro Taktsang.", "guru_rinpoche.png", "Guru Rinpoche"),
+        "Jomo (Aum Jomo)": ("The mountain deity associated with Jomolhari.", "jomo.png", "Jomo"),
+        "Genyen Jagpa Melen": ("Guardian deity associated with Dechenphu Lhakhang.", "genyen_jagpa_melen.png", None),
+        "Ap Genyen Domtshang": ("Guardian deity associated with Changangkha Lhakhang.", "ap_genyen_domtshang.png", "Ap Genyen Domtshang"),
+        "Drukpa Kunley": ("The Divine Madman, connected with Punakha traditions.", "drukpa_kuenley.png", "Drukpa Kunley"),
+        "The Demoness of Dochula": ("A story associated with Drukpa Kunley and Chimi Lhakhang.", "dochula.png", "Dochula"),
+    }
 
-        messagebox.showinfo(
-            "MythLab",
-            f"Opening {name}\n\n"
-            f"The {name} detail page can be connected later."
-        )
+    def open_dzongkhag(name):
+        for widget in page.winfo_children():
+            widget.destroy()
+        image_refs.clear()
+
+        top = tk.Frame(page, bg=BG)
+        top.pack(fill="x", padx=38, pady=(24, 12))
+        tk.Button(top, text="← Back to Regions", command=show_main_regions,
+                  bg=BG, fg=LIGHT_GOLD, relief="flat",
+                  font=("Segoe UI", 10)).pack(side="left")
+        tk.Button(top, text="View All Dzongkhags", command=show_other_dzongkhags,
+                  bg=BG, fg=MUTED, relief="flat",
+                  font=("Segoe UI", 9)).pack(side="right")
+
+        tk.Label(page, text=name, bg=BG, fg=LIGHT_GOLD,
+                 font=("Georgia", 30, "bold")).pack(anchor="w", padx=38, pady=(8, 5))
+        tk.Label(page, text=f"Explore myths and legends connected with {name} and Bhutan.",
+                 bg=BG, fg=TEXT, font=("Segoe UI", 11)).pack(
+                     anchor="w", padx=38, pady=(0, 18))
+
+        key = name.lower()
+        candidates = IMAGES.get(key, [key + ".png", key + ".jpg", "welcome.png"])
+        photo = load_photo(candidates, (1080, 225), mode="cover", background=BG)
+        if photo:
+            tk.Label(page, image=photo, bg=BG, bd=0).pack(fill="x", padx=38, pady=(0, 20))
+
+        tk.Label(page, text="✥  Myths and Stories", bg=BG, fg=LIGHT_GOLD,
+                 font=("Georgia", 19, "bold")).pack(anchor="w", padx=38, pady=(0, 8))
+
+        local = REGION_STORIES.get(name, [])
+        if not local:
+            tk.Label(
+                page,
+                text=f"Myths and legends from {name} will be added here.",
+                bg=BG, fg=MUTED, font=("Segoe UI", 12),
+                wraplength=900, justify="left"
+            ).pack(anchor="w", padx=38, pady=(10, 30))
+        else:
+            grid = tk.Frame(page, bg=BG)
+            grid.pack(fill="x", padx=31, pady=(0, 22))
+            for column in range(4):
+                grid.grid_columnconfigure(column, weight=1, uniform="story")
+            for index, title in enumerate(local):
+                description, filename, detail_title = STORY_DETAILS[title]
+                card = tk.Frame(grid, bg=CARD, highlightbackground=BORDER,
+                                highlightthickness=1)
+                card.grid(row=index // 4, column=index % 4,
+                          sticky="nsew", padx=7, pady=8)
+                picture = load_photo([filename], (235, 120),
+                                     mode="cover", background=CARD)
+                if picture:
+                    tk.Label(card, image=picture, bg=CARD).pack(fill="x")
+                else:
+                    tk.Label(card, text="✥", bg=CARD, fg=LIGHT_GOLD,
+                             font=("Georgia", 28), height=3).pack(fill="x")
+                tk.Label(card, text=title, bg=CARD, fg=LIGHT_GOLD,
+                         font=("Georgia", 12, "bold"), wraplength=195,
+                         justify="left").pack(anchor="w", padx=10, pady=(10, 4))
+                tk.Label(card, text=description, bg=CARD, fg=TEXT,
+                         font=("Segoe UI", 9), wraplength=195,
+                         justify="left").pack(anchor="w", padx=10, pady=(0, 10))
+                if open_myth and detail_title:
+                    tk.Button(card, text="Read Story →", bg=BG, fg=LIGHT_GOLD,
+                              relief="flat", font=("Segoe UI", 9),
+                              command=lambda t=detail_title: open_myth(t)).pack(
+                                  anchor="w", padx=10, pady=(0, 12))
+                else:
+                    tk.Label(card, text="Full story will be added here",
+                             bg=CARD, fg=MUTED, font=("Segoe UI", 9)).pack(
+                                 anchor="w", padx=10, pady=(0, 12))
+        canvas.yview_moveto(0)
 
     def create_pill(parent_widget, text):
 
@@ -842,51 +925,21 @@ def show_regions(parent):
                 relheight=1
             )
 
-        # Title and description without a background box
-        title_area = tk.Frame(
-            hero,
-            bg=BG
-        )
-
-        title_area.pack(
-            side="left",
-            padx=25,
-            pady=38
-        )
-
-        tk.Label(
-            title_area,
-            text="✥",
-            bg=BG,
-            fg=GOLD,
-            font=("Georgia", 28)
-        ).pack(side="left", padx=(0, 12))
-
-        words = tk.Frame(
-            title_area,
-            bg=BG
-        )
-
-        words.pack(side="left")
-
-        tk.Label(
-            words,
-            text="Explore Bhutan",
-            bg=BG,
-            fg=LIGHT_GOLD,
-            font=("Georgia", 29, "bold")
-        ).pack(anchor="w")
-
-        tk.Label(
-            words,
-            text="Discover the myths, legends, creatures and sacred stories\n"
-                 "connected to the 20 Dzongkhags of Bhutan.",
-            bg=BG,
-            fg=TEXT,
-            font=("Segoe UI", 10),
-            justify="left"
-        ).pack(anchor="w", pady=(4, 0))
-
+        # Draw text directly on the banner (no solid background panel).
+        # Tkinter labels are opaque, so use a Canvas overlay instead.
+        hero_canvas = tk.Canvas(hero, bg=BG, highlightthickness=0, bd=0)
+        hero_canvas.place(x=0, y=0, relwidth=1, relheight=1)
+        if banner_photo:
+            hero_canvas.create_image(0, 0, image=banner_photo, anchor="nw")
+        hero_canvas.create_text(30, 80, text="✥", anchor="w",
+                                fill=GOLD, font=("Georgia", 28))
+        hero_canvas.create_text(88, 75, text="Explore Bhutan", anchor="w",
+                                fill=LIGHT_GOLD, font=("Georgia", 29, "bold"))
+        hero_canvas.create_text(88, 125,
+                                text="Discover the myths, legends, creatures and sacred stories\n"
+                                     "connected to the 20 Dzongkhags of Bhutan.",
+                                anchor="w", fill=TEXT,
+                                font=("Segoe UI", 10))
 
         # Body layout
         body = tk.Frame(page, bg=BG)

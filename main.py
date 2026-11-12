@@ -552,11 +552,11 @@ def show_myth_detail(name, category=None):
         expand=True
     )
 
-    current_page = "Myths"
-    set_active_nav("Myths")
+    current_page = "Regions" if category == "Regions" else "Myths"
+    set_active_nav(current_page)
 
     # Return to the same category when Back is clicked.
-    back_to_myths = lambda: open_page("Myths")
+    back_to_myths = lambda: open_page("Regions" if category == "Regions" else "Myths")
 
     if name == "The Thunder Dragon":
         show_thunder_dragon(
@@ -588,6 +588,16 @@ def set_active_nav(page):
             button.configure(bg=SIDEBAR, fg=TEXT)
 
 
+def open_category(category):
+    """Open the selected home category with the correct myth filter."""
+    global selected_myth_category
+    if category == "Creatures":
+        open_page("Creatures")
+    else:
+        selected_myth_category = category
+        open_page("Myths")
+
+
 def open_page(page):
 
     """Navigate to a page and keep the sidebar highlight in sync."""
@@ -608,6 +618,14 @@ def open_page(page):
 
     current_page = page
     set_active_nav(page)
+
+
+def open_sidebar_page(page):
+    """Sidebar Myths always starts with the full collection."""
+    global selected_myth_category
+    if page == "Myths":
+        selected_myth_category = "All"
+    open_page(page)
 
 
 def _show_page(page):
@@ -695,7 +713,7 @@ def _show_page(page):
             expand=True
         )
 
-        show_regions(regions_page)
+        show_regions(regions_page, lambda title: show_myth_detail(title, "Regions"))
 
 
     # ========================================================
@@ -886,7 +904,7 @@ for text, page in menu_items:
         anchor="w",
         padx=20,
         pady=10,
-        command=lambda p=page: open_page(p)
+        command=lambda p=page: open_sidebar_page(p)
     )
 
     nav_button.pack(
@@ -1255,7 +1273,7 @@ for name, description, image_file in categories:
     )
 
     # p=... prevents the late-binding lambda problem.
-    command = lambda p=CATEGORY_PAGES[name]: open_page(p)
+    command = lambda category=name: open_category(category)
 
     tk.Button(
         card,
@@ -1277,7 +1295,7 @@ for name, description, image_file in categories:
 
 def read_myth(name):
 
-    open_page("Myths")
+    show_myth_detail(name)
 
 
 myth_header = tk.Frame(
@@ -1417,7 +1435,7 @@ for name, region, image_file in myths:
 
 def read_creature(name):
 
-    open_page("Creatures")
+    show_myth_detail("The Thunder Dragon" if name == "Druk" else ("The Yeti" if name == "Yeti" else ("The Snow Lion" if name == "Snow Lion" else name)))
 
 
 creature_header = tk.Frame(
