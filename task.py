@@ -568,8 +568,9 @@ def show_tasks(parent, username=None):
     ).pack()
 
     # -------------------- Keep going card --------------------
-    keep_going = rounded_card(left_content, height=76)
+    keep_going = tk.Frame(left_content, bg=BG, height=76)
     keep_going.pack(fill="x", pady=(14, 0))
+    keep_going.pack_propagate(False)
 
     # Use transparent CustomTkinter children so they do not paint
     # rectangular backgrounds over the rounded card.
