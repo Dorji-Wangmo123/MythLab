@@ -471,7 +471,7 @@ def find_image(filename):
 
 
 def load_detail_image(filename, size):
-    """Contain the complete image inside a fixed area, with no stretching."""
+    """Resize proportionally, returning an image without empty padding."""
     path = find_image(filename)
     if not path:
         print("DETAIL IMAGE NOT FOUND:", filename)
@@ -480,11 +480,7 @@ def load_detail_image(filename, size):
         with Image.open(path) as original:
             image = original.convert("RGB")
         image = ImageOps.contain(image, size, method=Image.Resampling.LANCZOS)
-        background = Image.new("RGB", size, CARD)
-        x = (size[0] - image.width) // 2
-        y = (size[1] - image.height) // 2
-        background.paste(image, (x, y))
-        return ImageTk.PhotoImage(background)
+        return ImageTk.PhotoImage(image)
     except Exception as error:
         print("DETAIL IMAGE ERROR:", filename, error)
         return None
@@ -574,26 +570,26 @@ def show_myth_detail(parent, back_command, name):
     tk.Label(heading, text=data.get("category", "Myth") + "  •  " + data.get("origin", ""),
              bg=BG, fg=GOLD, font=("Segoe UI", 10), anchor="w").pack(fill="x", pady=(12, 0))
 
-    # A fixed-size image surface centred within the available page width.
+    # The rounded border follows each image's actual proportions.
     image_outer = tk.Frame(content, bg=BG)
     image_outer.pack(fill="x", padx=28, pady=(4, 18))
-    image_surface = ctk.CTkFrame(image_outer, fg_color=CARD,
-                                 border_color=BORDER, border_width=1,
-                                 corner_radius=14, height=305)
-    image_surface.pack(fill="x")
-    image_surface.pack_propagate(False)
+    image_surface = ctk.CTkFrame(
+        image_outer, fg_color=CARD, border_color=BORDER,
+        border_width=1, corner_radius=14
+    )
+    image_surface.pack(anchor="center")
     image_label = tk.Label(image_surface, bg=CARD, bd=0, highlightthickness=0)
-    image_label.place(relx=0.5, rely=0.5, anchor="center")
+    image_label.pack(padx=7, pady=7)
     image_path = data.get("image")
     current_size = [0]
 
     def update_image(event=None):
-        width = max(240, image_surface.winfo_width() - 20)
-        width = min(width, 940)
+        # The width adapts to the window, while height preserves aspect ratio.
+        width = min(940, max(180, image_outer.winfo_width() - 16))
         if abs(width - current_size[0]) < 12:
             return
         current_size[0] = width
-        photo = load_detail_image(image_path, (width, 285))
+        photo = load_detail_image(image_path, (width, 360))
         if photo:
             image_label.configure(image=photo, text="")
             image_label.image = photo
@@ -602,7 +598,7 @@ def show_myth_detail(parent, back_command, name):
             image_label.configure(image="", text="Image not available",
                                   fg=LIGHT_TEXT, font=("Segoe UI", 12))
 
-    image_surface.bind("<Configure>", update_image)
+    image_outer.bind("<Configure>", update_image)
 
     # Tabs are rounded CustomTkinter buttons, not square Tkinter buttons.
     tabs = tk.Frame(content, bg=BG)
