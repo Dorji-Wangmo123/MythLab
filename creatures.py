@@ -3,7 +3,6 @@ import tkinter as tk
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps
 
-from thunder_dragon import show_thunder_dragon
 from myth_detail import show_myth_detail, MYTH_CONTENT
 
 # ==========================================
@@ -758,15 +757,11 @@ def show_creatures(parent, saved_search=""):
                 saved_search=current_search
             )
 
-        if name == "The Thunder Dragon":
-            clear_parent(parent)
-            show_thunder_dragon(parent, back_to_creatures)
-        else:
-            show_creature_story(
-                parent,
-                name,
-                back_to_creatures
-            )
+        show_creature_story(
+            parent,
+            name,
+            back_to_creatures
+        )
 
     # ==========================================
     # FAVOURITE BUTTON

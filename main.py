@@ -9,7 +9,6 @@ from PIL import Image, ImageTk, ImageOps
 
 from quiz import show_quiz, set_quiz_user
 from myths import show_myths
-from thunder_dragon import show_thunder_dragon
 from myth_detail import show_myth_detail as show_other_myth_detail
 from creatures import show_creatures
 from region import show_regions
@@ -558,17 +557,11 @@ def show_myth_detail(name, category=None):
     # Return to the same category when Back is clicked.
     back_to_myths = lambda: open_page("Regions" if category == "Regions" else "Myths")
 
-    if name == "The Thunder Dragon":
-        show_thunder_dragon(
-            myth_detail_page,
-            back_to_myths
-        )
-    else:
-        show_other_myth_detail(
-            myth_detail_page,
-            back_to_myths,
-            name
-        )
+    show_other_myth_detail(
+        myth_detail_page,
+        back_to_myths,
+        name
+    )
 ##
 
 def open_mythlab_page(page):
