@@ -1755,4 +1755,4 @@ tk.Label(
 
 open_page("Home")
 
-root.mainloop() 
+root.mainloop()  
