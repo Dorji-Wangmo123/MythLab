@@ -1,5 +1,6 @@
 #creature.py
 import tkinter as tk
+import customtkinter as ctk
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps
 
@@ -34,6 +35,7 @@ ALIASES = {
     "thunder_dragon": ["thunder", "druk"],
     "yeti": ["yeti"],
     "firebird": ["firebird", "phoenix"],
+    "firebird (1)": ["firebird"],
     "migoi": ["migoi"],
     "snow_lion": ["snowlion", "snow", "lion"],
     "druk": ["druk", "dragon"],
@@ -42,7 +44,7 @@ ALIASES = {
 }
 
 PLACEHOLDERS = {
-    "giant_tortoise.png": ("🐢", "#2c3a1a"),
+    "tortoise.png": ("🐢", "#2c3a1a"),
     "rangda.png": ("👺", "#3a1414"),
 }
 
@@ -64,6 +66,14 @@ def all_images():
 
 
 def find_image(filename):
+    # Always use the exact new Serpent King PNG; never fall back to a dragon.
+    if Path(filename).stem.lower() == "serpent_king":
+        exact = IMAGE_DIR / "serpent_king.png"
+        if exact.is_file():
+            return exact
+        print("SERPENT KING IMAGE MISSING:", exact)
+        return None
+
     files = all_images()
     base = Path(filename).stem
     target = normalize(base)
@@ -129,72 +139,56 @@ def load_image(filename, size, darken_left=False):
 # CREATURE DATA
 # ==========================================
 
-creatures = [
-    (
-        "The Thunder Dragon",
-        "Dragon",
-        "Dragons",
-        "Bhutan",
-        "thunder_dragon.png",
-        "A powerful and sacred dragon that brings rain, fertility and protects the kingdom."
-    ),
-    (
-        "The Yeti",
-        "Spirit",
-        "Spirits",
-        "Bhutan",
-        "yeti.png",
-        "A mysterious being said to live in the high mountains of Bhutan and the Himalayas."
-    ),
-    (
-        "The Firebird",
-        "Bird",
-        "Animals",
-        "India",
-        "firebird.png",
-        "A magical bird that symbolizes rebirth, hope and the eternal cycle of life."
-    ),
-    (
-        "Migoi",
-        "Spirit",
-        "Spirits",
-        "Bhutan",
-        "migoi.png",
-        "A shape-shifting spirit that lives in the forests and mountains."
-    ),
-    (
-        "Snow Lion",
-        "Animal",
-        "Animals",
-        "Bhutan",
-        "snow_lion.png",
-        "A mythical creature that represents purity, strength and good fortune."
-    ),
-    (
-        "The Serpent King",
-        "Dragon",
-        "Dragons",
-        "India",
-        "druk.png",
-        "A giant serpent believed to dwell in rivers and lakes, controlling water and weather."
-    ),
-    (
-        "The Giant Tortoise",
-        "Animal",
-        "Animals",
-        "Asia",
-        "giant_tortoise.png",
-        "A symbol of longevity and stability, often found in sacred lakes and highlands."
-    ),
-    (
-        "Rangda",
-        "Spirit",
-        "Spirits",
-        "Asia",
-        "rangda.png",
-        "A fierce spirit that represents chaos and destruction, found in Buddhist and Hindu traditions."
-    ),
-]
+# Shared source of creature data for creature.py and myths.py
+CREATURES = [('The Thunder Dragon',
+  'Dragon',
+  'Dragons',
+  'Bhutan',
+  'thunder_dragon.png',
+  'A powerful and sacred dragon that brings rain, fertility and protects the kingdom.'),
+ ('The Yeti',
+  'Spirit',
+  'Spirits',
+  'Bhutan',
+  'yeti.png',
+  'A mysterious being said to live in the high mountains of Bhutan and the Himalayas.'),
+ ('The Firebird',
+  'Bird',
+  'Animals',
+  'India',
+  'firebird (1).png',
+  'A magical bird that symbolizes rebirth, hope and the eternal cycle of life.'),
+ ('Migoi',
+  'Spirit',
+  'Spirits',
+  'Bhutan',
+  'migoi.png',
+  'A shape-shifting spirit that lives in the forests and mountains.'),
+ ('Snow Lion',
+  'Animal',
+  'Animals',
+  'Bhutan',
+  'snow_lion.png',
+  'A mythical creature that represents purity, strength and good fortune.'),
+ ('The Serpent King',
+  'Serpent',
+  'Other',
+  'India',
+  'serpent_king.png',
+  'A giant serpent believed to dwell in rivers and lakes, controlling water and weather.'),
+ ('The Giant Tortoise',
+  'Animal',
+  'Animals',
+  'Asia',
+  'tortoise.png',
+  'A symbol of longevity and stability, often found in sacred lakes and highlands.'),
+ ('Rangda',
+  'Spirit',
+  'Spirits',
+  'Asia',
+  'rangda.png',
+  'A fierce spirit that represents chaos and destruction, found in Buddhist and Hindu traditions.')]
+creatures = CREATURES
 
 
 # ==========================================
@@ -392,6 +386,27 @@ CREATURE_STORIES = {
     }
 }
 
+
+# ==========================================
+# EXPANDED CULTURAL STORIES FOR CREATURE DETAIL PAGES
+# ==========================================
+
+# These retellings combine traditional motifs with explanatory narrative.
+# They are not presented as verbatim historical or sacred texts.
+
+CREATURE_STORIES['The Yeti']["story"] = "Across the Himalayan mountains, generations of travellers, herders and villagers have told stories about an elusive being that lives far from busy settlements. In some accounts it is called the Yeti, a mysterious figure whose presence is suggested by unusual tracks in snow, distant sounds or fleeting movement on a mountainside. The details change from valley to valley, which is part of what makes the legend so enduring.\n\nImagine a small mountain village after a night of heavy snowfall. At dawn, a group of herders prepares to check on their animals. On the path above the village they notice a line of unfamiliar marks disappearing towards a rocky ridge. Some villagers believe a wild animal passed through; others recall the old stories of a powerful mountain dweller that rarely allows people to see it.\n\nAn elder tells the younger villagers that the mountains have always held things people cannot easily explain. Rather than chasing the mysterious visitor, the group chooses to stay together and continue its work. As the snow begins to fall again, the tracks slowly disappear, leaving behind a question that no one can answer with certainty.\n\nOver time, accounts like this spread between communities and become part of the wider Himalayan tradition. In Bhutan, stories of elusive forest and mountain beings also overlap with accounts of the Migoi, although the names and descriptions are not identical. Such tales are best understood as folklore rather than confirmed reports of an undiscovered species.\n\nToday, the Yeti remains a symbol of the mountains' mystery. Its legend invites curiosity about the natural world and reminds listeners that traditional stories can express wonder, caution and respect for remote places."
+
+CREATURE_STORIES['The Firebird']["story"] = "In Slavic fairy tales, the Firebird is no ordinary bird. Its feathers shine with an extraordinary light, sometimes described as golden or glowing like embers. The bird appears unexpectedly, often in a royal garden, and its arrival begins an adventure that tests the courage and judgement of the person who follows it.\n\nIn one familiar kind of tale, a king discovers that something has been visiting his orchard at night. Precious fruit has gone missing, and no guard has managed to catch the intruder. A young prince decides to keep watch. In the darkness, a brilliant glow moves between the trees, and he catches sight of the Firebird. He reaches towards it, but the bird escapes, leaving behind a single shining feather.\n\nThe feather is so beautiful that the king demands the bird itself. The prince sets out on a difficult journey, passing unfamiliar forests and meeting strangers who offer help or warnings. He gradually learns that rushing towards a dazzling reward can lead to trouble. He must listen carefully, make thoughtful choices and show kindness to those who assist him.\n\nDifferent versions of the Firebird story include different companions, obstacles and endings. Sometimes a helpful animal guides the hero; sometimes the search for the bird leads to further quests. What remains constant is the Firebird's ability to transform an ordinary moment into a remarkable journey.\n\nThe Firebird belongs to Slavic folklore, not specifically to Indian mythology. Its story has travelled widely through books, art and performances, where its glowing feathers continue to represent wonder, desire and the challenges that come with seeking something extraordinary."
+
+CREATURE_STORIES['Migoi']["story"] = 'In Bhutanese and Himalayan folklore, the Migoi is described as a mysterious being associated with dense forests, steep mountains and places rarely visited by people. Accounts vary between communities. Some describe an unusually large and powerful figure, while others emphasize its ability to remain hidden or escape notice.\n\nLong ago, according to a village-style telling of the legend, a group of people travelled through a forest on their way to a distant settlement. They knew the route well, but the forest was thick and the daylight faded early beneath the trees. As they walked, they heard a sound from deeper among the trunks. It was not a voice they recognized, and the leaves moved although they could see no animal.\n\nOne traveller wanted to investigate. Another remembered the stories told by grandparents about the Migoi and advised the group not to disturb whatever lived there. They kept to the path, called to one another so nobody was separated and reached the next village before nightfall.\n\nThat evening, the travellers shared what had happened. Some listeners believed they had encountered a sign of the Migoi; others suggested a wild animal or the wind. The story was repeated in later years, with each telling reminding children that the forest deserves care and attention.\n\nThe Migoi has an important place in Bhutanese storytelling because it gives shape to the mystery of the wilderness. There is no reliable scientific confirmation of such a creature. As folklore, however, the legend offers a memorable way to talk about uncertainty, humility and respect for the environment.'
+
+CREATURE_STORIES['Snow Lion']["story"] = 'High above the valleys, where the mountains meet the clouds, Himalayan Buddhist art imagines the Snow Lion moving freely across snowy peaks. It is usually portrayed with a bright white body and a flowing turquoise or colourful mane. Unlike an ordinary lion, it belongs to the world of sacred symbols and traditional imagination.\n\nIn a story inspired by this symbolism, a young traveller climbs towards a mountain pass with a heart full of worry. The path is steep, the air is cold and the journey feels impossible. Looking across the ridge, the traveller imagines a Snow Lion standing proudly against the sky, calm and fearless despite the vast mountains around it.\n\nThe image gives the traveller courage to continue carefully. Step by step, the difficult climb becomes manageable. When the traveller finally reaches the pass, the imagined lion is gone, but the feeling of confidence remains. The experience becomes a lesson about meeting challenges with steadiness rather than fear.\n\nIn Tibetan and Himalayan Buddhist traditions, Snow Lions often represent joy, fearlessness, purity and spiritual energy. They appear in paintings, textiles, sculpture and ceremonial imagery. Their appearance is symbolic: the stories are not intended as zoological descriptions of a real animal.\n\nThe Snow Lion reminds people that strength can be joined with happiness and wisdom. Its image connects the natural grandeur of the Himalayas with ideas of courage, spiritual aspiration and the protection of valued teachings.'
+
+CREATURE_STORIES['The Serpent King']["story"] = "In Indian traditions, Nagas are powerful serpent beings associated with rivers, lakes, rainfall, underground realms and precious treasures. Some accounts describe Naga kings ruling splendid hidden kingdoms beneath the waters. Their forms differ across stories: they may appear as serpents, as people with serpent features or as beings capable of transformation.\n\nImagine an ancient village beside a wide river. The people depend on its water for drinking, farming and travel. During a long dry season, the river becomes shallow, and the villagers worry about their crops. An elder recalls stories of a Naga king who watches over the waters and warns that rivers should never be treated carelessly.\n\nThe villagers gather to clean the riverbank, protect the springs and share the water fairly. In a traditional-style telling, dark clouds slowly appear above the hills and rain returns to the valley. The people speak of the Naga king's blessing, while the story emphasizes the importance of caring for the source of life.\n\nAcross South Asian traditions, named Naga figures such as Shesha, Vasuki and Takshaka appear in different religious and literary settings. Their roles are not all the same. Some are protectors; others feature in stories about conflict, duty, power or the relationship between humans and the natural world. Buddhist traditions also include Naga beings, including accounts of a Naga protecting the Buddha.\n\nThe Serpent King in MythLab represents these broader Naga traditions rather than one single fixed character. The legends show why water has often been regarded as sacred and why powerful serpents became symbols of guardianship, mystery and the balance between human communities and nature."
+
+CREATURE_STORIES['The Giant Tortoise']["story"] = 'The giant tortoise appears in several Asian storytelling traditions as a symbol of patience, endurance and the power to support something much greater than itself. One especially well-known example comes from Hindu mythology, where Vishnu takes the form of Kurma, the tortoise avatar.\n\nIn the story of the churning of the ocean, the gods and asuras seek amrita, the nectar of immortality. To churn the great cosmic ocean, they use Mount Mandara as a churning rod and the serpent Vasuki as a rope. But the mountain cannot remain steady and begins to sink beneath the water.\n\nAt this crucial moment, Vishnu appears as the enormous tortoise Kurma. He supports the mountain upon his back, creating a firm base for the great task. With the mountain steadied, the churning continues. Many extraordinary things emerge from the ocean in different tellings of the myth, and the search for amrita moves forward.\n\nThe tortoise does not win through speed or showy movement. Its importance lies in remaining strong and dependable when others cannot continue without support. This makes Kurma a powerful image of stability, service and perseverance.\n\nOther Asian traditions also use tortoises to symbolize longevity and the connection between earth and the cosmos, though their stories should not all be treated as the same myth. Together, these images invite reflection on patience, cooperation and the quiet strength of a reliable foundation.'
+
+CREATURE_STORIES['Rangda']["story"] = "In Balinese tradition, Rangda is a striking figure associated with dangerous supernatural forces. She is especially well known through performances that also feature Barong, a protective figure. Rangda's appearance in masks and dance can be frightening, but the performance carries meanings far deeper than a simple story about a monster.\n\nImagine a village preparing for a traditional dance drama. Musicians gather, performers put on elaborate costumes and the audience waits as the sound of the gamelan fills the space. Barong enters with lively movements, representing a protective force. Later, Rangda appears with a dramatic mask, long hair and commanding gestures.\n\nThe performance builds tension as the opposing figures confront one another. The dancers' movements, music and costumes help the audience understand the struggle between forces that threaten harmony and forces that seek to protect it. Depending on the local tradition and occasion, the performance may have ceremonial as well as artistic importance.\n\nRangda is sometimes linked in popular retellings to the legend of Calon Arang, a powerful woman associated with sorcery. These traditions are complex and vary in their details. They should not be reduced to a single universal version, because Balinese communities maintain different interpretations and performance practices.\n\nThe relationship between Rangda and Barong often expresses the continuing presence of opposing forces in life. Rather than offering a simple final victory, the drama encourages reflection on balance, community, spiritual protection and the cultural value of traditional performance."
 
 # ==========================================
 # CONNECT CREATURE STORIES TO MYTH DETAIL
@@ -597,50 +612,24 @@ def show_creatures(parent, saved_search=""):
     filters = tk.Frame(content, bg=BG)
     filters.pack(fill="x", padx=40, pady=(12, 0))
 
-    search_box = tk.Frame(
+    # Rounded search field, matching the Home page.
+    search_entry = ctk.CTkEntry(
         filters,
-        bg=CARD,
-        highlightthickness=1,
-        highlightbackground=BORDER
-    )
-    search_box.pack(side="left")
-
-    tk.Label(
-        search_box,
-        text="🔍",
-        bg=CARD,
-        fg=LIGHT_TEXT
-    ).pack(side="left", padx=(8, 0))
-
-    search_entry = tk.Entry(
-        search_box,
+        width=290,
+        height=40,
+        corner_radius=18,
         font=("Arial", 11),
-        bg=CARD,
-        fg=TEXT if saved_search else LIGHT_TEXT,
-        insertbackground=TEXT,
-        relief="flat",
-        width=28
+        fg_color=CARD,
+        text_color=TEXT,
+        border_color=GOLD_DARK,
+        border_width=1,
+        placeholder_text="🔍  Search creatures...",
+        placeholder_text_color=LIGHT_TEXT
     )
-
-    search_entry.pack(side="left", ipady=7, padx=6)
+    search_entry.pack(side="left", padx=(0, 12))
 
     if saved_search:
         search_entry.insert(0, saved_search)
-    else:
-        search_entry.insert(0, "Search creatures...")
-
-    def clear_placeholder(event):
-        if search_entry.get() == "Search creatures...":
-            search_entry.delete(0, "end")
-            search_entry.config(fg=TEXT)
-
-    def restore_placeholder(event):
-        if search_entry.get().strip() == "":
-            search_entry.insert(0, "Search creatures...")
-            search_entry.config(fg=LIGHT_TEXT)
-
-    search_entry.bind("<FocusIn>", clear_placeholder)
-    search_entry.bind("<FocusOut>", restore_placeholder)
 
     type_frame = tk.Frame(filters, bg=BG)
     type_frame.pack(side="right")
@@ -688,21 +677,18 @@ def show_creatures(parent, saved_search=""):
             for option in options:
                 selected = state[key] == option
 
-                tk.Button(
+                ctk.CTkButton(
                     frame,
                     text=option,
-                    font=(
-                        "Arial",
-                        9,
-                        "bold" if selected else "normal"
-                    ),
-                    bg=GOLD if selected else CARD,
-                    fg=BG if selected else TEXT,
-                    activebackground=GOLD,
-                    activeforeground=BG,
-                    relief="flat",
-                    padx=12,
-                    pady=3,
+                    font=("Arial", 9, "bold" if selected else "normal"),
+                    height=32,
+                    width=max(49, len(option) * 9 + 23),
+                    corner_radius=15,
+                    fg_color=GOLD if selected else CARD,
+                    text_color=BG if selected else TEXT,
+                    hover_color=GOLD_DARK if selected else "#253543",
+                    border_width=0 if selected else 1,
+                    border_color=BORDER,
                     command=lambda k=key, v=option: set_filter(k, v)
                 ).pack(side="left", padx=3)
 
@@ -747,9 +733,6 @@ def show_creatures(parent, saved_search=""):
 
     def read_creature(name):
         current_search = search_entry.get().strip()
-
-        if current_search == "Search creatures...":
-            current_search = ""
 
         def back_to_creatures():
             show_creatures(
@@ -933,8 +916,6 @@ def show_creatures(parent, saved_search=""):
 
         query = search_entry.get().strip().lower()
 
-        if query == "search creatures...":
-            query = ""
 
         shown = [
             creature

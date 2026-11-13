@@ -1,5 +1,6 @@
 
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 from pathlib import Path
 from datetime import datetime
@@ -1017,24 +1018,19 @@ def show_quiz(content, category_filter="All Quizzes"):
             button_bg = BG
             button_fg = TEXT
 
-        tk.Button(
+        ctk.CTkButton(
             category_bar,
             text=category,
-            font=("Arial", 9),
-            bg=button_bg,
-            fg=button_fg,
-            activebackground=GOLD,
-            activeforeground=BG,
-            relief="solid",
-            bd=1,
-            padx=15,
-            pady=7,
-            cursor="hand2",
+            font=("Arial", 12),
+            height=38,
+            corner_radius=19,
+            fg_color=button_bg if category == selected_category else CARD_DARK,
+            text_color=button_fg,
+            hover_color=GOLD_LIGHT,
+            border_color=GOLD,
+            border_width=1,
             command=lambda c=category: category_selected(c)
-        ).pack(
-            side="left",
-            padx=(0, 8)
-        )
+        ).pack(side="left", padx=(0, 8))
 
     # BODY
 
@@ -1383,22 +1379,13 @@ def create_quiz_card(parent, quiz, row, column):
         side="right"
     )
 
-    tk.Button(
-        card,
-        text="Start Quiz  →",
-        font=("Arial", 9, "bold"),
-        bg=CARD_DARK,
-        fg=GOLD_LIGHT,
-        activebackground=GOLD,
-        activeforeground=BG,
-        relief="solid",
-        bd=1,
+    ctk.CTkButton(
+        card, text="Start Quiz  →", font=("Arial", 11, "bold"),
+        height=36, corner_radius=18, fg_color=CARD_DARK,
+        text_color=GOLD_LIGHT, hover_color="#173c52",
+        border_width=1, border_color=GOLD,
         command=lambda q=quiz: start_quiz(q)
-    ).pack(
-        fill="x",
-        padx=10,
-        pady=(4, 10)
-    )
+    ).pack(fill="x", padx=10, pady=(4, 10))
 
 
 # ============================================================
@@ -1825,16 +1812,10 @@ def show_table_page(title, subtitle, headers, rows, empty_text,
         pady=25
     )
 
-    tk.Button(
-        page,
-        text="←  Back to Quizzes",
-        font=("Arial", 10, "bold"),
-        bg=GOLD_LIGHT,
-        fg=BG,
-        relief="flat",
-        padx=18,
-        pady=8,
-        cursor="hand2",
+    ctk.CTkButton(
+        page, text="←  Back to Quizzes", font=("Arial", 12, "bold"),
+        height=40, corner_radius=20, fg_color=GOLD_LIGHT,
+        text_color=BG, hover_color=GOLD,
         command=lambda: show_quiz(quiz_content)
     ).pack(anchor="w")
 
@@ -2374,32 +2355,18 @@ def build_question_page():
         pady=(30, 25)
     )
 
-    tk.Button(
-        navigation,
-        text="‹  Previous",
-        font=("Arial", 10, "bold"),
-        bg=BG,
-        fg=GOLD_LIGHT,
-        activebackground=GOLD,
-        activeforeground=BG,
-        relief="solid",
-        bd=1,
-        padx=25,
-        pady=8,
+    ctk.CTkButton(
+        navigation, text="‹  Previous", font=("Arial", 12, "bold"),
+        height=40, corner_radius=20, fg_color=CARD_DARK,
+        text_color=GOLD_LIGHT, hover_color="#173c52",
+        border_color=GOLD, border_width=1,
         command=previous_question
     ).pack(side="left")
 
-    tk.Button(
-        navigation,
-        text="Next  ›",
-        font=("Arial", 10, "bold"),
-        bg=GOLD_LIGHT,
-        fg=BG,
-        activebackground=GOLD,
-        activeforeground=BG,
-        relief="flat",
-        padx=30,
-        pady=9,
+    ctk.CTkButton(
+        navigation, text="Next  ›", font=("Arial", 12, "bold"),
+        height=40, corner_radius=20, fg_color=GOLD_LIGHT,
+        text_color=BG, hover_color=GOLD,
         command=next_question
     ).pack(side="right")
 
@@ -3043,15 +3010,10 @@ def show_quiz_result():
         fg=GOLD_LIGHT
     ).pack(pady=10)
 
-    tk.Button(
-        result,
-        text="Back to Quizzes",
-        font=("Arial", 10, "bold"),
-        bg=GOLD_LIGHT,
-        fg=BG,
-        relief="flat",
-        padx=30,
-        pady=10,
+    ctk.CTkButton(
+        result, text="Back to Quizzes", font=("Arial", 12, "bold"),
+        height=42, corner_radius=21, fg_color=GOLD_LIGHT,
+        text_color=BG, hover_color=GOLD,
         command=lambda: show_quiz(quiz_content)
     ).pack(pady=20)
 

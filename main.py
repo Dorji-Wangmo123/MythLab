@@ -6,6 +6,7 @@ import sqlite3
 import sys
 
 from PIL import Image, ImageTk, ImageOps
+import customtkinter as ctk
 
 from quiz import show_quiz, set_quiz_user
 from myths import show_myths
@@ -564,6 +565,21 @@ def show_myth_detail(name, category=None):
     )
 ##
 
+def open_favourite_detail(title):
+    """Open the chosen favourite's story; Back returns to Favourites."""
+    global current_page
+    hide_all_pages()
+    clear_frame(myth_detail_page)
+    myth_detail_page.pack(fill="both", expand=True)
+    current_page = "Favourites"
+    set_active_nav("Favourites")
+    show_other_myth_detail(
+        myth_detail_page,
+        lambda: open_page("Favourites"),
+        title
+    )
+
+
 def open_mythlab_page(page):
 
     open_page(page)
@@ -671,9 +687,11 @@ def _show_page(page):
         )
 
         show_myths(
-        myths_page,
-        show_myth_detail,
-        initial_category=selected_myth_category
+            myths_page,
+            show_myth_detail,
+            initial_category=selected_myth_category,
+            get_current_username=lambda: current_username,
+            request_login=ensure_logged_in_user
         )
 
 
@@ -783,9 +801,8 @@ def _show_page(page):
             expand=True
         )
 
-        favourites_page.open_mythlab_page = (
-            open_mythlab_page
-        )
+        favourites_page.open_mythlab_page = open_mythlab_page
+        favourites_page.open_favourite_detail = open_favourite_detail
 
         # Keep a reference so the object is not garbage-collected.
         favourites_page.app = MythLabFavourites(
@@ -837,7 +854,7 @@ tk.Label(
     bg=SIDEBAR,
     fg=GOLD
 ).pack(
-    pady=(25, 0)
+    pady=(12, 0)
 )
 
 
@@ -862,7 +879,7 @@ tk.Label(
     wraplength=190,
     justify="center"
 ).pack(
-    pady=(0, 25),
+    pady=(0, 12),
     padx=8
 )
 
@@ -896,7 +913,7 @@ for text, page in menu_items:
         relief="flat",
         anchor="w",
         padx=20,
-        pady=10,
+        pady=7,
         command=lambda p=page: open_sidebar_page(p)
     )
 
@@ -910,24 +927,30 @@ for text, page in menu_items:
 
 
 # ============================================================
-# SIDEBAR QUOTE
+# SIDEBAR QUOTE - keep the full quote readable below About
 # ============================================================
 
+quote_frame = tk.Frame(sidebar, bg=SIDEBAR)
+quote_frame.pack(side="bottom", fill="x", padx=8, pady=(5, 12))
+
 tk.Label(
-    sidebar,
-    text=(
-        '“Every myth is a door\n'
-        'to a deeper wisdom.”\n\n'
-        '— Bhutanese Wisdom'
-    ),
+    quote_frame,
+    text="“Every myth is a door\nto a deeper wisdom.”",
     font=("Georgia", 9, "italic"),
     bg=SIDEBAR,
     fg=GOLD,
+    wraplength=185,
     justify="center"
-).pack(
-    side="bottom",
-    pady=25
-)
+).pack(fill="x")
+
+tk.Label(
+    quote_frame,
+    text="— Bhutanese Wisdom",
+    font=("Georgia", 8, "italic"),
+    bg=SIDEBAR,
+    fg=LIGHT_TEXT,
+    justify="center"
+).pack(fill="x", pady=(4, 0))
 
 
 # ============================================================
@@ -1114,37 +1137,41 @@ search_frame.pack(
 )
 
 
-search_entry = tk.Entry(
+search_entry = ctk.CTkEntry(
     search_frame,
+    height=43,
+    corner_radius=18,
     font=("Arial", 12),
-    bg=CARD,
-    fg=TEXT,
-    insertbackground=TEXT,
-    relief="flat"
+    fg_color=CARD,
+    text_color=TEXT,
+    border_color="#765d31",
+    border_width=1,
+    placeholder_text="Search myths, legends and creatures...",
+    placeholder_text_color=LIGHT_TEXT
 )
 
 search_entry.pack(
     side="left",
     fill="x",
     expand=True,
-    ipady=9,
     padx=(0, 10)
 )
 
-
-tk.Button(
+search_button = ctk.CTkButton(
     search_frame,
     text="🔍 Search",
-    font=("Arial", 10, "bold"),
-    bg=GOLD,
-    fg=BG,
-    relief="flat",
-    padx=18,
-    pady=8,
+    width=115,
+    height=43,
+    corner_radius=18,
+    font=("Arial", 11, "bold"),
+    fg_color=GOLD,
+    text_color=BG,
+    hover_color="#efd27c",
     command=search_myth
-).pack(
-    side="right"
 )
+
+search_button.pack(side="right")
+search_entry.bind("<Return>", lambda event: search_myth())
 
 
 # ============================================================

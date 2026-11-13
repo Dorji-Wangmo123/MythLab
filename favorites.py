@@ -409,7 +409,7 @@ class MythLabFavourites:
 
             self.filter_buttons[name] = button
 
-        # Rounded search box
+        # Rounded search box. Icon and input stay inside the frame.
         self.search_frame = ctk.CTkFrame(
             self.main,
             width=330,
@@ -419,31 +419,21 @@ class MythLabFavourites:
             border_width=1,
             border_color="#526b78"
         )
-
-        self.search_frame.place(
-            relx=1,
-            x=-25,
-            y=194,
-            anchor="ne"
-        )
-
+        self.search_frame.place(relx=1, x=-25, y=194, anchor="ne")
         self.search_frame.pack_propagate(False)
 
-        tk.Label(
+        self.search_icon = tk.Label(
             self.search_frame,
             text="⌕",
             font=("Segoe UI Symbol", 21),
             bg="#0a2433",
             fg=GOLD
-        ).place(
-            x=12,
-            y=3
         )
+        self.search_icon.pack(side="left", padx=(12, 5))
 
         self.search_entry = ctk.CTkEntry(
             self.search_frame,
             textvariable=self.search_var,
-            width=260,
             height=30,
             corner_radius=10,
             border_width=0,
@@ -453,11 +443,25 @@ class MythLabFavourites:
             placeholder_text_color=MUTED,
             font=("Segoe UI", 10)
         )
+        self.search_entry.pack(side="left", fill="x", expand=True, padx=(0, 10), pady=5)
 
-        self.search_entry.place(
-            x=48,
-            y=5
-        )
+        # On narrow windows move the search below the category buttons.
+        self.main.bind("<Configure>", self.layout_search)
+
+    def layout_search(self, event=None):
+        width = self.main.winfo_width()
+        if width < 2:
+            return
+        if width < 850:
+            search_y = 242
+            cards_y = 294
+        else:
+            search_y = 194
+            cards_y = 245
+        self.search_frame.place_configure(y=search_y, width=min(330, max(170, width - 50)))
+        if hasattr(self, "cards_canvas"):
+            self.cards_canvas.place_configure(y=cards_y)
+            self.cards_scrollbar.place_configure(y=cards_y)
 
     # ========================================================
     # FILTER
@@ -502,31 +506,43 @@ class MythLabFavourites:
     # ========================================================
 
     def load_card_image(self, filename):
-
+        """Load saved images even if the file extension differs."""
         if not filename:
             return None
 
-        image_path = ASSETS_DIR / filename
+        requested = Path(str(filename)).name
+        candidate = ASSETS_DIR / requested
 
-        if not image_path.exists():
-            print("IMAGE NOT FOUND:", image_path)
+        if not candidate.is_file():
+            # The Myths page may save .png while the actual asset is .jpg.
+            # Match the image stem without changing existing saved favourites.
+            def normalise(value):
+                return "".join(ch.lower() for ch in value if ch.isalnum())
+
+            stem = normalise(Path(requested).stem)
+            candidate = None
+            if ASSETS_DIR.is_dir():
+                for path in ASSETS_DIR.iterdir():
+                    if (path.is_file()
+                            and path.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")
+                            and normalise(path.stem) == stem):
+                        candidate = path
+                        break
+
+        if candidate is None or not candidate.is_file():
+            print("IMAGE NOT FOUND:", requested)
             return None
 
         try:
-            image = Image.open(
-                image_path
-            ).convert("RGB")
-
-            image = ImageOps.fit(
-                image,
-                (290, 128),
-                method=Image.Resampling.LANCZOS
-            )
-
+            with Image.open(candidate) as source:
+                image = ImageOps.fit(
+                    source.convert("RGB"),
+                    (290, 128),
+                    method=Image.Resampling.LANCZOS
+                )
             return ImageTk.PhotoImage(image)
-
         except Exception as error:
-            print("Image error:", error)
+            print("Image error:", candidate, error)
             return None
 
     # ========================================================
@@ -829,25 +845,32 @@ class MythLabFavourites:
     # ========================================================
 
     def view_item(self, item):
+        """Open the selected favourite's story, not the general Myths page."""
+        item_type = str(item.get("type", "")).strip().lower()
+        title = str(item.get("title", "")).strip()
 
-        if hasattr(self.root, "open_mythlab_page"):
+        if item_type in ("myth", "myths"):
+            open_detail = getattr(self.root, "open_favourite_detail", None)
+            if callable(open_detail) and title:
+                # The detail page handles its own Back button to Favourites.
+                detail_titles = {
+                    "the legend of paro taktsang": "Paro Taktsang",
+                    "jomo (aum jomo)": "Jomo",
+                }
+                open_detail(detail_titles.get(title.casefold(), title))
+                return
 
-            item_type = item["type"].lower()
+        # Other favourite types retain their existing navigation.
+        open_page = getattr(self.root, "open_mythlab_page", None)
+        if callable(open_page):
+            if item_type in ("creature", "creatures"):
+                open_page("Creatures")
+                return
+            if item_type in ("region", "regions"):
+                open_page("Regions")
+                return
 
-            if item_type == "myth":
-                self.root.open_mythlab_page("Myths")
-
-            elif item_type == "creature":
-                self.root.open_mythlab_page("Creatures")
-
-            elif item_type == "region":
-                self.root.open_mythlab_page("Regions")
-
-            else:
-                self.show_item_information(item)
-
-        else:
-            self.show_item_information(item)
+        self.show_item_information(item)
 
     def show_item_information(self, item):
 

@@ -1,5 +1,6 @@
 
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import messagebox
 from pathlib import Path
 from PIL import Image, ImageTk, ImageOps
@@ -38,98 +39,32 @@ BORDER = "#765d31"
 # ============================================================
 
 IMAGES = {
-    "hero": "banner.jpg",
-    "explore_background": "welcome.png",
-
-    "map": [
-        "bhutan map.png",
-        "bhutan_map.png"
-    ],
-
-    "paro": [
-        "paro_taktsang.png",
-        "jomolhari.png",
-        "welcome.png"
-    ],
-
-    "dragon": [
-        "thunder_dragon.png",
-        "druk (3).png",
-        "creatures.png"
-    ],
-
-    "bumthang": [
-        "bumthang.png",
-        "welcome.png",
-        "jomolhari.png"
-    ],
-
-    "trashigang": [
-        "trashigang.jpg",
-        "trashigang.png",
-        "welcome.png",
-        "jomolhari.png"
-    ],
-
-    "trashiyangtse": [
-        "trashiyangtse.jpg",
-        "trashiyangtse.png",
-        "jomolhari.png",
-        "welcome.png"
-    ],
-
-    "mongar": [
-        "mongar.jpg",
-        "mongar.png",
-        "welcome.png",
-        "jomolhari.png"
-    ],
-
-    "samdrup jongkhar": [
-        "samdrupjongkhar.png",
-        "samdrup_jongkhar.png",
-        "welcome.png",
-        "jomolhari.png"
-    ],
-
-    "zhemgang": [
-        "zhemgang.jpg",
-        "zhemgang.png",
-        "black_mountain (2).png",
-        "welcome.png"
-    ],
-
-    "trongsa": [
-        "trongsa.jpg",
-        "trongsa.png",
-        "jomolhari.png",
-        "welcome.png"
-    ],
-
-    "wangdue phodrang": [
-        "wangdue_phodrang.jpg",
-        "wangdue_phodrang.png",
-        "welcome.png",
-        "jomolhari.png"
-    ],
-
-    "thimphu": [
-        "thimphu_dzongkha.png",
-        "welcome.png",
-        "jomolhari.png"
-    ],
-
-    "punakha": [
-        "punakha.png",
-        "welcome.png",
-        "jomolhari.png"
-    ],
-
-    "kyichu": [
-        "kyichu lhakhang.png",
-        "kyichu_lhakhang.png",
-        "kyichu.png"
-    ]
+    'hero': ['banner.jpg'],
+    'explore_background': ['welcome.png'],
+    'map': ['bhutan_map.png'],
+    'paro': ['paro_dzong.jpg'],
+    'taktsang': ['paro_taktsang.png'],
+    'dragon': ['thunder_dragon.png'],
+    'kyichu': ['kyichu_lhakhang.png'],
+    'bumthang': ['bumthang.png'],
+    'chukha': ['chhukha_dzongkhag.jpg'],
+    'dagana': ['dagana_dzongkhag.jpg'],
+    'gasa': ['gasa_dzongkhag.jpg', 'gasa.jpg', 'gasa.png'],
+    'haa': ['haa_dzongkhag.jpg'],
+    'lhuentse': ['lhuentse_dzongkhag.jpg'],
+    'mongar': ['mongar_dzongkhag.jpg'],
+    'pema gatshel': ['pemagatshel_dzongkhag.jpg'],
+    'punakha': ['punakha.png'],
+    'samdrup jongkhar': ['samdrupjongkhar.png'],
+    'samtse': ['samtse_dzongkhag.jpg'],
+    'sarpang': ['sarpang_dzongkhag.jpg'],
+    'thimphu': ['thimphu_dzongkha.png'],
+    'trashigang': ['trashigang.jpg'],
+    'trashiyangtse': ['trashiyangtse.jpg'],
+    'trongsa': ['trongsa.jpg'],
+    'tsirang': ['tsirang_dzongkhag.jpg'],
+    'wangdue phodrang': ['wangduephodrang_dzongkhag.jpg'],
+    'zhemgang': ['zhemgang.jpg'],
 }
 
 
@@ -138,76 +73,28 @@ IMAGES = {
 # ============================================================
 
 def find_image(names):
-
+    """Use only exact image filenames from this project's assets folder."""
     if isinstance(names, str):
         names = [names]
 
-    # Check assets folder and project folder first
+    if not IMAGE_FOLDER.is_dir():
+        print("ASSETS FOLDER NOT FOUND:", IMAGE_FOLDER)
+        return None
+
+    # Exact filenames first; no searching backup folders or unrelated images.
     for name in names:
-
-        path = IMAGE_FOLDER / name
-
+        path = IMAGE_FOLDER / Path(name).name
         if path.is_file():
             return path
 
-        path = ROOT / name
-
-        if path.is_file():
-            return path
-
-    # Search recursively using exact filename
+    # Permit a different extension when the image has the same exact stem.
+    allowed = {".jpg", ".jpeg", ".png", ".webp"}
     for name in names:
-
-        target = Path(name).name.lower()
-
-        try:
-            for path in ROOT.rglob("*"):
-
-                if (
-                    path.is_file()
-                    and path.suffix.lower() in {
-                        ".png", ".jpg", ".jpeg", ".webp"
-                    }
-                    and path.name.lower() == target
-                ):
-                    return path
-
-        except Exception as error:
-            print("IMAGE SEARCH ERROR:", error)
-
-    # Search recursively using flexible filename matching
-    for name in names:
-
-        target = Path(name).stem.lower()
-        target = (
-            target.replace("_", "")
-            .replace("-", "")
-            .replace(" ", "")
-        )
-
-        try:
-            for path in ROOT.rglob("*"):
-
-                if not path.is_file():
-                    continue
-
-                if path.suffix.lower() not in {
-                    ".png", ".jpg", ".jpeg", ".webp"
-                }:
-                    continue
-
-                current = path.stem.lower()
-                current = (
-                    current.replace("_", "")
-                    .replace("-", "")
-                    .replace(" ", "")
-                )
-
-                if current == target:
-                    return path
-
-        except Exception as error:
-            print("FLEXIBLE IMAGE SEARCH ERROR:", error)
+        stem = Path(name).stem.casefold()
+        for path in IMAGE_FOLDER.iterdir():
+            if (path.is_file() and path.suffix.casefold() in allowed
+                    and path.stem.casefold() == stem):
+                return path
 
     print("IMAGE NOT FOUND:", names)
     return None
@@ -232,11 +119,23 @@ def load_photo(names, size, mode="contain", background=CARD):
 
             # Fill the complete area.
             # Some cropping may occur.
-            img = ImageOps.fit(
-                img,
-                size,
-                method=Image.Resampling.LANCZOS
-            )
+            # Avoid enlarging low-resolution pictures into blurry banners.
+            # Crop to the requested aspect ratio, then centre at original resolution
+            # when the source is too small.
+            target_w, target_h = size
+            if img.width >= target_w and img.height >= target_h:
+                img = ImageOps.fit(img, size, method=Image.Resampling.LANCZOS)
+            else:
+                ratio = max(target_w / img.width, target_h / img.height)
+                if ratio <= 1:
+                    img = ImageOps.fit(img, size, method=Image.Resampling.LANCZOS)
+                else:
+                    # A small photo cannot be made sharper by stretching it.
+                    # Show it without upscaling against the existing background.
+                    img.thumbnail(size, Image.Resampling.LANCZOS)
+                    backdrop = Image.new("RGB", size, background)
+                    backdrop.paste(img, ((target_w-img.width)//2, (target_h-img.height)//2))
+                    img = backdrop
 
         else:
 
@@ -345,20 +244,37 @@ def show_regions(parent, open_myth=None):
     # Display titles can differ from keys in myth_detail.py.
     REGION_STORIES = {
         "Haa": ["Ap Chhundu"],
-        "Paro": ["The Legend of Paro Taktsang", "Guru Rinpoche", "Jomo (Aum Jomo)"],
-        "Thimphu": ["Genyen Jagpa Melen", "Ap Genyen Domtshang"],
-        "Punakha": ["Drukpa Kunley", "The Demoness of Dochula"],
+        "Paro": ["The Legend of Paro Taktsang", "Guru Rinpoche"],
+        "Gasa": ["Jomo (Aum Jomo)"],
+        "Thimphu": ["Genyen Jagpa Melen", "Ap Genyen Domtshang", "The Demoness of Dochula"],
+        "Punakha": ["Drukpa Kunley"],
+        "Trashigang": ["Migoi"],
     }
     STORY_DETAILS = {
-        "Ap Chhundu": ("The guardian deity of Haa Valley.", "ap_chhundu.png", "Ap Chhundu"),
+        "Ap Chhundu": ("The guardian deity of Haa Valley.", "ap_chhundu.jpg", "Ap Chhundu"),
         "The Legend of Paro Taktsang": ("The sacred monastery and its legends.", "paro_taktsang.png", "Paro Taktsang"),
-        "Guru Rinpoche": ("Sacred traditions connected with Paro Taktsang.", "guru_rinpoche.png", "Guru Rinpoche"),
-        "Jomo (Aum Jomo)": ("The mountain deity associated with Jomolhari.", "jomo.png", "Jomo"),
-        "Genyen Jagpa Melen": ("Guardian deity associated with Dechenphu Lhakhang.", "genyen_jagpa_melen.png", None),
-        "Ap Genyen Domtshang": ("Guardian deity associated with Changangkha Lhakhang.", "ap_genyen_domtshang.png", "Ap Genyen Domtshang"),
-        "Drukpa Kunley": ("The Divine Madman, connected with Punakha traditions.", "drukpa_kuenley.png", "Drukpa Kunley"),
-        "The Demoness of Dochula": ("A story associated with Drukpa Kunley and Chimi Lhakhang.", "dochula.png", "Dochula"),
+        "Guru Rinpoche": ("Sacred traditions connected with Paro Taktsang.", "guru.jpg", "Guru Rinpoche"),
+        "Jomo (Aum Jomo)": ("The mountain deity associated with Jomolhari.", "jomo.jpg", "Jomo"),
+        "Genyen Jagpa Melen": ("Guardian deity associated with Dechenphu Lhakhang.", "genyen_jagpa_melen.jpg", "Genyen Jagpa Melen"),
+        "Ap Genyen Domtshang": ("Guardian deity associated with Changangkha Lhakhang.", "ap_genyen_domtshang.jpg", "Ap Genyen Domtshang"),
+        "Drukpa Kunley": ("The Divine Madman, connected with Punakha traditions.", "drukpa_kuenley.jpg", "Drukpa Kunley"),
+        "The Demoness of Dochula": ("A legend associated with Dochula in Thimphu Dzongkhag.", "dochula.jpg", "Dochula"),
+        "Migoi": ("A mysterious forest being from Bhutanese and Himalayan folklore.", "migoi.png", "Migoi"),
     }
+
+    def open_region_story(detail_title, region_name):
+        """Open stories from Myths or Creatures without losing the region link."""
+        if detail_title == "Migoi":
+            # creature.py registers Migoi in the shared MYTH_CONTENT dictionary.
+            # Import lazily so opening Regions does not create an import cycle.
+            import creature
+            from myth_detail import show_myth_detail
+            show_myth_detail(parent, lambda: show_regions(parent, open_myth), "Migoi")
+        elif open_myth is not None:
+            open_myth(detail_title)
+        else:
+            from myth_detail import show_myth_detail
+            show_myth_detail(parent, lambda: show_regions(parent, open_myth), detail_title)
 
     def open_dzongkhag(name):
         for widget in page.winfo_children():
@@ -381,10 +297,14 @@ def show_regions(parent, open_myth=None):
                      anchor="w", padx=38, pady=(0, 18))
 
         key = name.lower()
-        candidates = IMAGES.get(key, [key + ".png", key + ".jpg", "welcome.png"])
+        candidates = IMAGES.get(key, [])
         photo = load_photo(candidates, (1080, 225), mode="cover", background=BG)
         if photo:
             tk.Label(page, image=photo, bg=BG, bd=0).pack(fill="x", padx=38, pady=(0, 20))
+        elif name == "Paro":
+            tk.Label(page, text="Paro Rinpung Dzong\nAdd assets/paro_dzong.jpg to display its photograph.",
+                     bg=CARD2, fg=LIGHT_GOLD, font=("Georgia", 15),
+                     height=6, justify="center").pack(fill="x", padx=38, pady=(0, 20))
 
         tk.Label(page, text="✥  Myths and Stories", bg=BG, fg=LIGHT_GOLD,
                  font=("Georgia", 19, "bold")).pack(anchor="w", padx=38, pady=(0, 8))
@@ -421,10 +341,10 @@ def show_regions(parent, open_myth=None):
                 tk.Label(card, text=description, bg=CARD, fg=TEXT,
                          font=("Segoe UI", 9), wraplength=195,
                          justify="left").pack(anchor="w", padx=10, pady=(0, 10))
-                if open_myth and detail_title:
+                if detail_title:
                     tk.Button(card, text="Read Story →", bg=BG, fg=LIGHT_GOLD,
                               relief="flat", font=("Segoe UI", 9),
-                              command=lambda t=detail_title: open_myth(t)).pack(
+                              command=lambda t=detail_title, r=name: open_region_story(t, r)).pack(
                                   anchor="w", padx=10, pady=(0, 12))
                 else:
                     tk.Label(card, text="Full story will be added here",
@@ -433,19 +353,18 @@ def show_regions(parent, open_myth=None):
         canvas.yview_moveto(0)
 
     def create_pill(parent_widget, text):
-
-        return tk.Button(
+        return ctk.CTkButton(
             parent_widget,
             text=text,
-            relief="solid",
-            bd=1,
-            bg=BG,
-            fg=TEXT,
-            activebackground="#173547",
-            activeforeground=TEXT,
-            font=("Segoe UI", 8),
-            padx=8,
-            pady=2
+            width=max(60, len(text) * 9 + 24),
+            height=30,
+            corner_radius=15,
+            fg_color=BG,
+            text_color=TEXT,
+            hover_color="#173547",
+            border_color=BORDER,
+            border_width=1,
+            font=("Segoe UI", 9)
         )
 
     # ========================================================
@@ -685,32 +604,20 @@ def show_regions(parent, open_myth=None):
             pady=(0, 18)
         )
 
-        search = tk.Entry(
+        # Rounded search field; preserves the original page structure.
+        search = ctk.CTkEntry(
             controls,
-            bg="#081F30",
-            fg=TEXT,
-            insertbackground=TEXT,
-            relief="solid",
-            bd=1,
-            font=("Segoe UI", 10)
+            height=42,
+            corner_radius=18,
+            font=("Segoe UI", 11),
+            fg_color="#081F30",
+            text_color=TEXT,
+            border_color=BORDER,
+            border_width=1,
+            placeholder_text="Search dzongkhags...",
+            placeholder_text_color=MUTED
         )
-
-        search.insert(0, "Search dzongkhags...")
-
-        search.pack(
-            side="left",
-            ipady=8,
-            ipadx=12,
-            fill="x",
-            expand=True
-        )
-
-        def clear_search(event):
-
-            if search.get() == "Search dzongkhags...":
-                search.delete(0, "end")
-
-        search.bind("<FocusIn>", clear_search)
+        search.pack(side="left", fill="x", expand=True)
 
         # Section title
         section = tk.Frame(page, bg=BG)
@@ -744,27 +651,27 @@ def show_regions(parent, open_myth=None):
         
         data = [
     ("Bumthang", "The spiritual heart of Bhutan, home to ancient temples and sacred legends.", IMAGES["bumthang"], ["Myths", "Sacred Places"]),
-    ("Chukha", "A southern region rich in cultural heritage, rivers and traditional stories.", ["chukha.jpg", "chukha.png", "welcome.png"], ["Myths", "Stories"]),
-    ("Dagana", "A peaceful region with traditional villages and stories passed through generations.", ["dagana.jpg", "dagana.png", "welcome.png"], ["Folklore", "Stories"]),
-    ("Gasa", "Known for its mountain landscapes, hot springs and Himalayan traditions.", ["gasa.jpg", "gasa.png", "jomolhari.png"], ["Myths", "Nature"]),
+    ("Chukha", "A southern region rich in cultural heritage, rivers and traditional stories.", IMAGES['chukha'], ["Myths", "Stories"]),
+    ("Dagana", "A peaceful region with traditional villages and stories passed through generations.", IMAGES['dagana'], ["Folklore", "Stories"]),
+    ("Gasa", "Known for its mountain landscapes, hot springs and Himalayan traditions.", IMAGES['gasa'], ["Myths", "Nature"]),
 
-    ("Haa", "A beautiful valley with ancient traditions, sacred places and local legends.", ["haa.jpg", "haa.png", "welcome.png"], ["Myths", "Sacred Places"]),
-    ("Lhuentse", "A region known for its rich cultural heritage, ancestral traditions and legends.", ["lhuentse.jpg", "lhuentse.png", "welcome.png"], ["Folklore", "Stories"]),
+    ("Haa", "A beautiful valley with ancient traditions, sacred places and local legends.", IMAGES['haa'], ["Myths", "Sacred Places"]),
+    ("Lhuentse", "A region known for its rich cultural heritage, ancestral traditions and legends.", IMAGES['lhuentse'], ["Folklore", "Stories"]),
     ("Mongar", "Home to ancient traditions and inspiring legends passed down through generations.", IMAGES["mongar"], ["Myths", "Stories"]),
     ("Paro", "A valley of ancient monasteries, sacred sites and timeless legends.", IMAGES["paro"], ["Myths", "Sacred Places"]),
 
-    ("Pema Gatshel", "A region of eastern Bhutan known for its traditions and cultural heritage.", ["pemagatshel.jpg", "pema_gatshel.png", "welcome.png"], ["Folklore", "Stories"]),
+    ("Pema Gatshel", "A region of eastern Bhutan known for its traditions and cultural heritage.", IMAGES['pema gatshel'], ["Folklore", "Stories"]),
     ("Punakha", "A historic valley known for its majestic dzong and sacred stories.", IMAGES["punakha"], ["Myths", "Sacred Places"]),
     ("Samdrup Jongkhar", "A gateway to the east, filled with cultural diversity and hidden tales.", IMAGES["samdrup jongkhar"], ["Myths", "Creatures"]),
-    ("Samtse", "A southern region with diverse communities, traditions and local folklore.", ["samtse.jpg", "samtse.png", "welcome.png"], ["Folklore", "Stories"]),
+    ("Samtse", "A southern region with diverse communities, traditions and local folklore.", IMAGES['samtse'], ["Folklore", "Stories"]),
 
-    ("Sarpang", "A southern region with rich natural surroundings and cultural traditions.", ["sarpang.jpg", "sarpang.png", "welcome.png"], ["Nature", "Stories"]),
+    ("Sarpang", "A southern region with rich natural surroundings and cultural traditions.", IMAGES['sarpang'], ["Nature", "Stories"]),
     ("Thimphu", "The capital region, where modern Bhutan meets ancient traditions and sacred heritage.", IMAGES["thimphu"], ["Myths", "Sacred Places"]),
     ("Trashigang", "Land of vibrant culture and strong traditions, with stories of brave people and mystical beings.", IMAGES["trashigang"], ["Myths", "Creatures"]),
     ("Trashiyangtse", "A region of rivers and mountains, known for its rich folklore and sacred heritage.", IMAGES["trashiyangtse"], ["Myths", "Sacred Places"]),
 
     ("Trongsa", "The central land of power and history, where royal paths and mystical stories meet.", IMAGES["trongsa"], ["Myths", "Sacred Places"]),
-    ("Tsirang", "A region of beautiful landscapes, diverse communities and traditional stories.", ["tsirang.jpg", "tsirang.png", "welcome.png"], ["Folklore", "Stories"]),
+    ("Tsirang", "A region of beautiful landscapes, diverse communities and traditional stories.", IMAGES['tsirang'], ["Folklore", "Stories"]),
     ("Wangdue Phodrang", "A land of majestic views and fascinating legends, from ancient kings to sacred rivers.", IMAGES["wangdue phodrang"], ["Myths", "Creatures"]),
     ("Zhemgang", "Known for its peaceful valleys and legends of nature, spirits and ancestral wisdom.", IMAGES["zhemgang"], ["Myths", "Creatures"])
     ]
@@ -1090,19 +997,18 @@ def show_regions(parent, open_myth=None):
 
         for index, name in enumerate(names):
 
-            tk.Button(
+            ctk.CTkButton(
                 name_grid,
                 text=name,
                 command=lambda n=name: open_dzongkhag(n),
-                bg=BG,
-                fg=TEXT,
-                activebackground="#203c4b",
-                activeforeground=TEXT,
-                relief="solid",
-                bd=1,
-                font=("Segoe UI", 8),
-                padx=8,
-                pady=5
+                fg_color=BG,
+                text_color=TEXT,
+                hover_color="#203c4b",
+                border_color=BORDER,
+                border_width=1,
+                corner_radius=15,
+                height=32,
+                font=("Segoe UI", 9)
             ).grid(
                 row=index // 5,
                 column=index % 5,
@@ -1242,7 +1148,7 @@ def show_regions(parent, open_myth=None):
 
         # Popular cards
         popular_items = [
-            (IMAGES["paro"], "The Tiger's Nest", "Myth"),
+            (IMAGES["taktsang"], "The Tiger's Nest", "Myth"),
             (IMAGES["dragon"], "Paro Dragon", "Creature"),
             (IMAGES["kyichu"], "Kyichu Lhakhang", "Sacred Place")
         ]

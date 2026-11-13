@@ -208,70 +208,94 @@ def show_tasks(parent, username=None):
         )
         return
 
-    # -------------------- Default tasks --------------------
-    default_tasks = [
-        (
-            "Read about the Thunder Dragon",
-            "Learn about the Thunder Dragon and its role in Bhutanese mythology.",
-            "High", "Pending", "25 Apr 2026"
-        ),
-        (
-            "Explore Bhutanese mythical creatures",
-            "Learn about Druk, Yeti, Migoi and other beings.",
-            "Medium", "Completed", "24 Apr 2026"
-        ),
-        (
-            "Read the story of the Great Yeti",
-            "Discover the legend of the Yeti in the Himalayas.",
-            "High", "Pending", "27 Apr 2026"
-        ),
-        (
-            "Watch The Firebird",
-            "Learn about the symbol of rebirth and hope.",
-            "Low", "Pending", "28 Apr 2026"
-        ),
-        (
-            "Explore Punakha Dzong",
-            "Learn about the history and significance of Punakha Dzong.",
-            "Medium", "Completed", "22 Apr 2026"
-        ),
-        (
-            "Take the Mythology Quiz",
-            "Test what you've learned so far.",
-            "High", "Pending", "30 Apr 2026"
-        )
+    # -------------------- Tasks based on existing MythLab content --------------------
+    # Read titles and descriptions directly from the MythLab Myths and Creatures
+    # catalogs. This avoids adding stories that are not in the application.
+    from myths import MYTHS
+    from creatures import creatures
+
+    # Exact names from MythLab, not newly invented story titles.
+    featured_titles = [
+        "The Thunder Dragon",
+        "Ap Chhundu",
+        "Guru Rinpoche",
+        "The Yeti",
+        "The Black Mountain",
+        "The Legend of Paro Taktsang",
+        "Migoi",
+        "Snow Lion",
     ]
+
+    catalog = {}
+    for category, title, description, image_name, region in MYTHS:
+        catalog[title] = (description, image_name)
+    for title, kind, category, region, image_name, description in creatures:
+        catalog.setdefault(title, (description, image_name))
+
+    # These are the old sample tasks from the previous version. Update only
+    # exact matches so that user-created or edited tasks are never overwritten.
+    legacy_titles = {
+        "Read about the Thunder Dragon": "The Thunder Dragon",
+        "Explore Bhutanese mythical creatures": "Migoi",
+        "Read the story of the Great Yeti": "The Yeti",
+        "Watch The Firebird": "The Firebird",
+        "Explore Punakha Dzong": "The Legend of Paro Taktsang",
+        "Take the Mythology Quiz": "Ap Chhundu",
+    }
 
     try:
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT COUNT(*) FROM tasks WHERE user_id = ?", (user_id,)
+            "SELECT id, title, description, priority, status, due_date "
+            "FROM tasks WHERE user_id = ? ORDER BY id", (user_id,)
         )
-        if cursor.fetchone()[0] == 0:
-            for title, description, priority, status, due_date in default_tasks:
+        existing = cursor.fetchall()
+        old_default_titles = set(legacy_titles)
+        # Only replace an old sample set when all records are old samples.
+        # Otherwise retain all user data as-is.
+        is_original_sample_set = bool(existing) and all(
+            row[1] in old_default_titles for row in existing
+        )
+        if is_original_sample_set:
+            for task_id, old_title, desc, priority, status, date in existing:
+                new_title = legacy_titles[old_title]
+                if new_title in catalog:
+                    new_desc, _ = catalog[new_title]
+                    cursor.execute(
+                        "UPDATE tasks SET title = ?, description = ?, due_date = NULL "
+                        "WHERE id = ? AND user_id = ?",
+                        (new_title, new_desc, task_id, user_id)
+                    )
+
+        cursor.execute("SELECT title FROM tasks WHERE user_id = ?", (user_id,))
+        existing_titles = {row[0] for row in cursor.fetchall()}
+        # Seed the featured catalog items only for a new user or for the
+        # untouched old sample set. Don't append tasks to customized lists.
+        if not existing or is_original_sample_set:
+            for title in featured_titles:
+                if title not in catalog or title in existing_titles:
+                    continue
+                description, _ = catalog[title]
                 cursor.execute("""
                     INSERT INTO tasks
-                    (user_id, title, description, completed,
-                     priority, status, due_date)
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    user_id, title, description,
-                    1 if status == "Completed" else 0,
-                    priority, status, due_date
-                ))
+                    (user_id, title, description, completed, priority, status, due_date)
+                    VALUES (?, ?, ?, 0, 'Medium', 'Pending', NULL)
+                """, (user_id, title, description))
+                existing_titles.add(title)
         conn.commit()
         cursor.execute("""
             SELECT id, title, description, priority, status, due_date
             FROM tasks WHERE user_id = ? ORDER BY id
         """, (user_id,))
         rows = cursor.fetchall()
-        conn.close()
     except sqlite3.Error as error:
         messagebox.showerror(
             "Database Error", f"Could not load tasks:\n{error}"
         )
         return
+    finally:
+        conn.close()
 
     current_tasks = []
     for row in rows:
@@ -291,10 +315,38 @@ def show_tasks(parent, username=None):
     for widget in parent.winfo_children():
         widget.destroy()
 
-    task_images = {
-        task["id"]: load_task_image(task["image_keywords"])
-        for task in current_tasks
-    }
+    def task_photo(task):
+        # Use the actual image files from MythLab assets. Some catalog
+        # entries use .png while the supplied images are .jpg.
+        image_aliases = {
+            "Ap Chhundu": ["ap_chhundu.jpg", "ap_chhundu.png"],
+            "Guru Rinpoche": ["guru_rinpocheo.jpg", "guru.jpg", "guru_rinpoche.png"],
+        }
+        entry = catalog.get(task["title"])
+        candidates = list(image_aliases.get(task["title"], []))
+        if entry and entry[1]:
+            candidates.append(entry[1])
+            stem = Path(entry[1]).stem
+            for extension in (".jpg", ".jpeg", ".png", ".webp"):
+                candidates.append(stem + extension)
+
+        for filename in dict.fromkeys(candidates):
+            image_file = IMAGE_FOLDER / filename
+            if not image_file.is_file():
+                continue
+            try:
+                with Image.open(image_file) as original:
+                    picture = ImageOps.fit(
+                        original.convert("RGB"), (58, 54),
+                        method=Image.Resampling.LANCZOS
+                    )
+                return ImageTk.PhotoImage(picture)
+            except (OSError, ValueError) as error:
+                print("Could not load task image:", image_file, error)
+
+        return load_task_image(task["image_keywords"])
+
+    task_images = {task["id"]: task_photo(task) for task in current_tasks}
 
     search_var = tk.StringVar()
     active_filter = {"value": "All"}
@@ -415,7 +467,7 @@ def show_tasks(parent, username=None):
     left_content.pack(side="left", fill="both", expand=True)
 
     # -------------------- Filter bar --------------------
-    filter_bar = rounded_card(left_content, height=58)
+    filter_bar = rounded_card(left_content, height=126)
     filter_bar.pack(fill="x", pady=(0, 0))
 
     # -------------------- Task table heading --------------------
@@ -424,7 +476,7 @@ def show_tasks(parent, username=None):
     table_header.pack_propagate(False)
 
     for x, label in [(72, "Task"), (368, "Priority"),
-                     (468, "Status"), (586, "Due Date")]:
+                     (468, "Status")]:
         tk.Label(
             table_header, text=label, bg=PANEL2, fg=TEXT,
             font=("Segoe UI", 8, "bold")
@@ -538,9 +590,10 @@ def show_tasks(parent, username=None):
 
     for i, (icon, title, description, color) in enumerate(priority_data):
         y = 48 + i * 49
-        tk.Label(
-            guide, text=icon, bg=color, fg=WHITE,
-            font=("Segoe UI", 12, "bold"), width=3
+        ctk.CTkLabel(
+            guide, text=icon, fg_color=color, text_color=WHITE,
+            font=("Segoe UI", 12, "bold"),
+            width=36, height=28, corner_radius=10
         ).place(x=16, y=y)
         tk.Label(
             guide, text=title, bg=PANEL, fg=WHITE,
@@ -699,11 +752,16 @@ def show_tasks(parent, username=None):
         def save_changes():
             new_title = title_entry.get().strip()
             new_description = desc_entry.get().strip()
-            if not new_title:
+            if new_title not in catalog:
                 messagebox.showwarning(
-                    "Edit Task", "Task title cannot be empty.", parent=window
+                    "Edit Task",
+                    "Choose an existing MythLab story title. "
+                    "New stories cannot be added from My Tasks.",
+                    parent=window
                 )
                 return
+            # Keep descriptions consistent with the existing MythLab story.
+            new_description = catalog[new_title][0]
             try:
                 conn = get_connection()
                 cursor = conn.cursor()
@@ -719,9 +777,7 @@ def show_tasks(parent, username=None):
                 task["description"] = new_description
                 task["icon"] = get_task_icon(new_title)
                 task["image_keywords"] = get_task_image_keywords(new_title)
-                task_images[task["id"]] = load_task_image(
-                    task["image_keywords"]
-                )
+                task_images[task["id"]] = task_photo(task)
                 window.destroy()
                 refresh_tasks()
             except sqlite3.Error as error:
@@ -802,37 +858,34 @@ def show_tasks(parent, username=None):
             ).place(x=124, y=34, width=220, height=18)
 
             priority_colors = {"High": RED, "Medium": YELLOW, "Low": GREEN}
-            tk.Label(
+            ctk.CTkLabel(
                 row, text=task["priority"],
-                bg=priority_colors.get(task["priority"], YELLOW),
-                fg=WHITE, font=("Segoe UI", 8, "bold"),
-                width=8, pady=4
-            ).place(x=368, y=25)
+                fg_color=priority_colors.get(task["priority"], YELLOW),
+                text_color=WHITE, font=("Segoe UI", 8, "bold"),
+                width=68, height=28, corner_radius=14
+            ).place(x=368, y=24)
 
             status_bg = GREEN if checked else BLUE
-            tk.Label(
-                row, text=task["status"], bg=status_bg, fg=WHITE,
-                font=("Segoe UI", 8, "bold"), width=10, pady=4
-            ).place(x=468, y=25)
-
-            tk.Label(
-                row, text=task["date"], bg=PANEL, fg=TEXT,
-                font=("Segoe UI", 8)
-            ).place(x=586, y=28)
+            ctk.CTkLabel(
+                row, text=task["status"],
+                fg_color=status_bg, text_color=WHITE,
+                font=("Segoe UI", 8, "bold"),
+                width=86, height=28, corner_radius=14
+            ).place(x=468, y=24)
 
             tk.Button(
                 row, text="✎", command=lambda t=task: edit_task(t),
                 bg=PANEL, fg=GOLD, activebackground=PANEL2,
                 activeforeground=LIGHT_GOLD, borderwidth=0,
                 font=("Segoe UI", 15), cursor="hand2"
-            ).place(x=685, y=19)
+            ).place(x=561, y=19, width=30, height=34)
 
             tk.Button(
-                row, text="♜", command=lambda t=task: delete_task(t),
+                row, text="🗑", command=lambda t=task: delete_task(t),
                 bg=PANEL, fg=RED, activebackground=PANEL2,
                 activeforeground=RED, borderwidth=0,
-                font=("Segoe UI", 13), cursor="hand2"
-            ).place(x=720, y=21)
+                font=("Segoe UI Emoji", 13), cursor="hand2"
+            ).place(x=596, y=19, width=32, height=34)
 
     # ========================================================
     # STATISTICS AND FILTERING
@@ -888,7 +941,9 @@ def show_tasks(parent, username=None):
             button.configure(
                 fg_color=GOLD if selected else PANEL,
                 text_color=BG if selected else WHITE,
-                font=("Segoe UI", 9, "bold" if selected else "normal")
+                font=("Segoe UI", 10, "bold" if selected else "normal"),
+                border_width=1,
+                border_color=GOLD if selected else "#3d5363"
             )
         apply_filters()
 
@@ -898,41 +953,51 @@ def show_tasks(parent, username=None):
         page.update_idletasks()
         canvas.configure(scrollregion=canvas.bbox("all"))
 
-    # -------------------- Filter buttons --------------------
+    # Put filters and search on separate lines so the search text is visible.
+    filter_buttons_row = ctk.CTkFrame(filter_bar, fg_color="transparent", height=54)
+    filter_buttons_row.pack(fill="x", padx=10, pady=(7, 0))
+    search_row = ctk.CTkFrame(filter_bar, fg_color="transparent", height=48)
+    search_row.pack(fill="x", padx=15, pady=(0, 10))
+
+    # -------------------- Rounded pill filters --------------------
     def create_filter_button(label, filter_type):
+        selected = filter_type == "All"
         button = ctk.CTkButton(
-            filter_bar,
+            filter_buttons_row,
             text=label,
             command=lambda: select_filter(filter_type),
-            fg_color=GOLD if filter_type == "All" else PANEL,
-            hover_color=LIGHT_GOLD,
-            text_color=BG if filter_type == "All" else WHITE,
-            corner_radius=8,
-            font=("Segoe UI", 9, "bold" if filter_type == "All" else "normal"),
-            width=92,
-            height=32
+            fg_color=GOLD if selected else PANEL2,
+            hover_color=LIGHT_GOLD if selected else "#25465a",
+            text_color=BG if selected else WHITE,
+            border_width=1,
+            border_color=GOLD if selected else "#3d5363",
+            corner_radius=24,
+            font=("Segoe UI", 10, "bold" if selected else "normal"),
+            width=105,
+            height=38
         )
-        button.pack(side="left", padx=5, pady=12)
+        button.pack(side="left", padx=(4, 4), pady=6)
         filter_buttons[filter_type] = button
 
     create_filter_button("All Tasks", "All")
     create_filter_button("Pending", "Pending")
     create_filter_button("Completed", "Completed")
 
-    # -------------------- Search field --------------------
+    # -------------------- Rounded search field --------------------
     search = ctk.CTkEntry(
-        filter_bar,
+        search_row,
         textvariable=search_var,
         placeholder_text="Search tasks...",
-        fg_color="#071522",
+        placeholder_text_color=MUTED,
+        fg_color="#102b3d",
         text_color=WHITE,
-        border_color="#294354",
-        corner_radius=8,
-        width=185,
-        height=32,
-        font=("Segoe UI", 9)
+        border_color=GOLD,
+        border_width=1,
+        corner_radius=24,
+        height=38,
+        font=("Segoe UI", 10)
     )
-    search.pack(side="right", padx=12, pady=12)
+    search.pack(side="left", fill="x", expand=True, padx=4, pady=3)
     search_var.trace_add("write", apply_filters)
 
     # -------------------- Initial display --------------------

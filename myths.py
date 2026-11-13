@@ -2,6 +2,8 @@
 import tkinter as tk
 from tkinter import messagebox
 from pathlib import Path
+import sqlite3
+import customtkinter as ctk
 from PIL import Image, ImageTk, ImageOps
 
 # ============================================================
@@ -17,8 +19,23 @@ LIGHT_TEXT = "#c7c1b3"
 
 PROJECT_DIR = Path(__file__).resolve().parent
 IMAGE_DIR = PROJECT_DIR / "assets"
+DB_FILE = PROJECT_DIR / "mythlab.db"
 
 image_refs = []
+
+# Keep the King Gesar image consistent between the collection and story page.
+# myth_detail.py is the existing story-detail module used by main.py.
+# Updating its shared MYTH_CONTENT dictionary changes the story image
+# without replacing or rewriting the story-detail module.
+try:
+    import myth_detail as _myth_detail
+    if "The Story of King Gesar" in _myth_detail.MYTH_CONTENT:
+        _myth_detail.MYTH_CONTENT["The Story of King Gesar"]["image"] = "king_gesar_custom.png"
+    # Ensure the Serpent King detail uses the new PNG, not a dragon.
+    if "The Serpent King" in _myth_detail.MYTH_CONTENT:
+        _myth_detail.MYTH_CONTENT["The Serpent King"]["image"] = "serpent_king.png"
+except (ImportError, AttributeError) as _image_error:
+    print("King Gesar story image could not be configured:", _image_error)
 
 # ============================================================
 # MYTH DATA
@@ -53,34 +70,13 @@ MYTHS = [
     # HEROES
     ("Heroes", "The Story of King Gesar",
      "The legendary hero celebrated across Tibetan and Himalayan traditions.",
-     "heroes.png", "Asia"),
+     "king_gesar_custom.png", "Asia"),
 
     ("Heroes", "Drukpa Kunley",
      "The Divine Madman remembered for his humour and unconventional teachings.",
-     "drukpa_kuenley.png", "Bhutan"),
-
-    # CREATURES
-    ("Creatures", "The Thunder Dragon",
-     "The sacred dragon associated with Bhutan and its national identity.",
-     "thunder_dragon.png", "Bhutan"),
-
-    ("Creatures", "The Yeti",
-     "A mysterious mountain being from Himalayan folklore.",
-     "yeti.png", "Bhutan"),
-
-    ("Creatures", "The Snow Lion",
-     "A mythical symbol of strength, joy and spiritual qualities.",
-     "snow_lion.png", "Asia"),
-
-    ("Creatures", "Tshomen and Lu",
-     "Water spirits associated with sacred lakes and rivers.",
-     "tshomen_lu.png", "Bhutan"),
+     "drukpa_kuenley.jpg", "Bhutan"),
 
     # FOLKLORE
-    ("Folklore", "The Firebird",
-     "A magical bird from traditional Slavic fairy tales.",
-     "firebird (1).png", "Asia"),
-
     ("Folklore", "The Black Mountain",
      "A sacred Bhutanese landscape connected with local traditions.",
      "black_mountain (2).png", "Bhutan"),
@@ -102,6 +98,16 @@ MYTHS = [
      "thunder_dragon.png", "Bhutan"),
 ]
 
+# Use the same creature catalogue on both pages.
+from creatures import CREATURES
+for title, kind, group, region, filename, description in CREATURES:
+    origin = "Europe" if title == "The Firebird" else region
+    MYTHS.append(("Creatures", title, description, filename, origin))
+
+# Register expanded creature stories in the shared detail dictionary,
+# including Migoi, Rangda, Firebird, and Giant Tortoise.
+import creatures as _creature_story_registration
+
 CATEGORIES = [
     "All",
     "Gods & Goddesses",
@@ -115,7 +121,8 @@ REGIONS = ["All", "Bhutan", "Asia", "Europe", "Other"]
 PAGE_SIZE = 8
 
 
-def show_myths(parent, open_detail=None, initial_category="All"):
+def show_myths(parent, open_detail=None, initial_category="All",
+               get_current_username=None, request_login=None):
 
     global image_refs
     image_refs = []
@@ -136,7 +143,16 @@ def show_myths(parent, open_detail=None, initial_category="All"):
         )
 
     def find_image(filename):
-        """Find images using exact or flexible filename matching."""
+        """Find a matching local image, prioritising exact filenames."""
+        # These specific images must never be replaced by an unrelated
+        # similarly named picture when their exact files are missing.
+        if filename.lower() in {"drukpa_kuenley.jpg", "serpent_king.png"}:
+            for folder in (IMAGE_DIR, PROJECT_DIR):
+                candidate = folder / filename
+                if candidate.is_file():
+                    return candidate
+            print("IMAGE NOT FOUND:", filename)
+            return None
 
         extensions = [".png", ".jpg", ".jpeg", ".webp"]
 
@@ -187,11 +203,23 @@ def show_myths(parent, open_detail=None, initial_category="All"):
         try:
             image = Image.open(path).convert("RGB")
 
-            image = ImageOps.fit(
-                image,
-                size,
-                method=Image.Resampling.LANCZOS
-            )
+            # Fill every card consistently. For the two tall portraits,
+            # position the crop toward the top so faces remain visible.
+            portrait_names = {
+                "guru_rinpoche.png", "guru.jpg",
+                "king_gesar_custom.png", "king gesar.jpg"
+            }
+            if filename.lower() in portrait_names:
+                image = ImageOps.fit(
+                    image, size,
+                    method=Image.Resampling.LANCZOS,
+                    centering=(0.5, 0.12)
+                )
+            else:
+                image = ImageOps.fit(
+                    image, size,
+                    method=Image.Resampling.LANCZOS
+                )
 
             photo = ImageTk.PhotoImage(image)
             image_refs.append(photo)
@@ -354,20 +382,22 @@ def show_myths(parent, open_detail=None, initial_category="All"):
     search_frame = tk.Frame(content, bg=BG)
     search_frame.pack(fill="x", padx=30, pady=(0, 15))
 
-    search_entry = tk.Entry(
+    search_entry = ctk.CTkEntry(
         search_frame,
         font=("Arial", 11),
-        bg="#102b3d",
-        fg=TEXT,
-        insertbackground=TEXT,
-        relief="flat"
+        fg_color="#102b3d",
+        text_color=TEXT,
+        border_color="#365469",
+        border_width=1,
+        corner_radius=16,
+        height=42,
+        placeholder_text="Search myths..."
     )
 
     search_entry.pack(
         side="left",
         fill="x",
         expand=True,
-        ipady=11,
         padx=(0, 10)
     )
 
@@ -419,8 +449,9 @@ def show_myths(parent, open_detail=None, initial_category="All"):
             active = label == selected
 
             button.configure(
-                bg=GOLD if active else BG,
-                fg=BG if active else TEXT
+                fg_color=GOLD if active else "#102b3d",
+                text_color=BG if active else TEXT,
+                hover_color="#e5bd68" if active else "#1c4055"
             )
 
     def filter_category(category):
@@ -438,8 +469,14 @@ def show_myths(parent, open_detail=None, initial_category="All"):
         render_cards()
 
     def search_myth(event=None):
-        state["search"] = search_entry.get().strip().lower()
+        """Search every MythLab story, regardless of previously selected filters."""
+        state["search"] = search_entry.get().strip().casefold()
         state["page"] = 1
+        if state["search"]:
+            state["category"] = "All"
+            state["region"] = "All"
+            highlight(category_buttons, "All")
+            highlight(region_buttons, "All")
         render_cards()
 
     def read_more(name):
@@ -451,67 +488,127 @@ def show_myths(parent, open_detail=None, initial_category="All"):
                 "The story detail page is not connected."
             )
 
-    def favourite(name):
-        messagebox.showinfo(
-            "Favourite",
-            name + " added to your favourites."
-        )
+    def favourite(name, button=None):
+        """Toggle a myth in the existing per-user favourites table."""
+        username = get_current_username() if callable(get_current_username) else None
+        if not username and callable(request_login):
+            if not request_login():
+                return
+            username = get_current_username() if callable(get_current_username) else None
+        if not username:
+            messagebox.showwarning("Login required", "Please log in to save favourites.")
+            return
+
+        myth = next((item for item in MYTHS if item[1] == name), None)
+        if myth is None:
+            return
+        category, title, description, image_file, region = myth
+        try:
+            with sqlite3.connect(DB_FILE) as connection:
+                cursor = connection.cursor()
+                cursor.execute("SELECT id FROM users WHERE LOWER(username) = LOWER(?)", (username.strip(),))
+                user = cursor.fetchone()
+                if user is None:
+                    messagebox.showwarning("Login required", "Your user account was not found.")
+                    return
+                user_id = user[0]
+                cursor.execute("""CREATE TABLE IF NOT EXISTS favourites (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL, item_type TEXT NOT NULL,
+                    item_id INTEGER, title TEXT, description TEXT,
+                    region TEXT, image TEXT)""")
+                cursor.execute("""SELECT id FROM favourites
+                    WHERE user_id = ? AND LOWER(item_type) = 'myth' AND title = ?""",
+                    (user_id, title))
+                existing = cursor.fetchall()
+                if existing:
+                    cursor.executemany("DELETE FROM favourites WHERE id = ? AND user_id = ?",
+                                       [(row[0], user_id) for row in existing])
+                    added = False
+                else:
+                    # The original database requires a non-NULL item_id.
+                    # Use the myth's stable position in the MYTHS collection.
+                    myth_id = MYTHS.index(myth) + 1
+                    cursor.execute("""INSERT INTO favourites
+                        (user_id, item_type, item_id, title, description, region, image)
+                        VALUES (?, 'myth', ?, ?, ?, ?, ?)""",
+                        (user_id, myth_id, title, description, region, image_file))
+                    added = True
+            if button is not None and button.winfo_exists():
+                button.configure(text="♥" if added else "♡")
+            messagebox.showinfo("Favourites", f"{title} {'added to' if added else 'removed from'} your favourites.")
+        except sqlite3.Error as error:
+            messagebox.showerror("Favourites", f"Could not update favourites: {error}")
+
+    def is_favourite(name):
+        username = get_current_username() if callable(get_current_username) else None
+        if not username or not DB_FILE.exists():
+            return False
+        try:
+            with sqlite3.connect(DB_FILE) as connection:
+                return connection.execute("""SELECT 1 FROM favourites f
+                    JOIN users u ON u.id = f.user_id
+                    WHERE LOWER(u.username) = LOWER(?)
+                      AND LOWER(f.item_type) = 'myth' AND f.title = ? LIMIT 1""",
+                    (username.strip(), name)).fetchone() is not None
+        except sqlite3.Error:
+            return False
 
     # ========================================================
     # FILTER BUTTONS
     # ========================================================
 
     for category in CATEGORIES:
-
-        button = tk.Button(
+        button = ctk.CTkButton(
             category_row,
             text=category,
-            font=("Arial", 8, "bold"),
-            bg=BG,
-            fg=TEXT,
-            activebackground=GOLD,
-            activeforeground=BG,
-            relief="solid",
-            bd=1,
-            cursor="hand2",
+            font=("Arial", 11, "bold"),
+            fg_color="#102b3d",
+            text_color=TEXT,
+            hover_color="#1c4055",
+            border_color="#365469",
+            border_width=1,
+            corner_radius=14,
+            height=34,
+            width=max(58, len(category) * 8 + 26),
             command=lambda c=category: filter_category(c)
         )
-
-        button.pack(side="left", padx=3, ipadx=7, ipady=5)
+        button.pack(side="left", padx=3)
         category_buttons[category] = button
 
     for region in REGIONS:
-
-        button = tk.Button(
+        button = ctk.CTkButton(
             region_row,
             text=region,
-            font=("Arial", 8),
-            bg=BG,
-            fg=TEXT,
-            activebackground=GOLD,
-            activeforeground=BG,
-            relief="solid",
-            bd=1,
-            cursor="hand2",
+            font=("Arial", 11),
+            fg_color="#102b3d",
+            text_color=TEXT,
+            hover_color="#1c4055",
+            border_color="#365469",
+            border_width=1,
+            corner_radius=14,
+            height=34,
+            width=max(58, len(region) * 8 + 26),
             command=lambda r=region: filter_region(r)
         )
-
-        button.pack(side="left", padx=3, ipadx=7, ipady=5)
+        button.pack(side="left", padx=3)
         region_buttons[region] = button
 
-    tk.Button(
+    ctk.CTkButton(
         search_frame,
         text="SEARCH",
-        font=("Arial", 9, "bold"),
-        bg=GOLD,
-        fg=BG,
-        relief="flat",
-        cursor="hand2",
-        padx=18,
-        pady=7,
+        font=("Arial", 11, "bold"),
+        fg_color=GOLD,
+        text_color=BG,
+        hover_color="#e5bd68",
+        corner_radius=15,
+        width=100,
+        height=42,
         command=search_myth
     ).pack(side="right")
 
+    # Update results while typing, not only when the Search button is clicked.
+    search_entry.bind("<KeyRelease>", search_myth)
     search_entry.bind("<Return>", search_myth)
 
     # ========================================================
@@ -538,8 +635,8 @@ def show_myths(parent, open_detail=None, initial_category="All"):
                 continue
 
             searchable = (
-                category + " " + name + " " + description
-            ).lower()
+                category + " " + name + " " + description + " " + region
+            ).casefold()
 
             if (
                 state["search"]
@@ -764,16 +861,17 @@ def show_myths(parent, open_detail=None, initial_category="All"):
                 command=lambda n=name: read_more(n)
             ).pack(side="left")
 
-            tk.Button(
+            heart_button = tk.Button(
                 button_frame,
-                text="♡",
+                text="♥" if is_favourite(name) else "♡",
                 font=("Arial", 13),
                 bg=CARD,
                 fg=GOLD,
                 relief="flat",
-                cursor="hand2",
-                command=lambda n=name: favourite(n)
-            ).pack(side="right")
+                cursor="hand2"
+            )
+            heart_button.configure(command=lambda n=name, b=heart_button: favourite(n, b))
+            heart_button.pack(side="right")
 
         render_pagination(total_pages)
 
